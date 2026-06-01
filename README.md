@@ -55,20 +55,66 @@ pkill -f "PlayNotch.app/Contents/MacOS"
 
 ---
 
-## Permissions (one-time setup)
+## Installation (step by step)
 
-PlayNotch reads and controls the players through system automation. On the **first
-command** macOS will ask for authorization: click **OK**. If you denied it,
-re-enable it under:
+1. **Get the code and build it.**
+   ```bash
+   git clone https://github.com/MatteoAdamo82/PlayNotch.git
+   cd PlayNotch
+   ./scripts/build_app.sh --run
+   ```
+   The notch widget appears at the top center of the screen.
 
-**System Settings → Privacy & Security → Automation** → enable PlayNotch for
-Music / Spotify / your browser.
+2. **Start playing something** in Apple Music, Spotify, or YouTube Music and
+   hover the notch — it expands into the now-playing card.
+
+3. **Grant the Automation consent.** The first time PlayNotch sends a command to
+   a player (e.g. when it reads what's playing or you press play/next), macOS
+   shows a dialog like:
+
+   > *"PlayNotch" wants access to control "Music.app". Allowing control will
+   > provide access to documents and data in "Music", and to perform actions
+   > within that app.*
+
+   Click **OK**. macOS asks this once per controlled app (Music, Spotify, your
+   browser). If nothing shows up in the card, it usually means a consent was
+   denied — re-enable it (see below).
+
+4. **For YouTube Music**, do the one-time browser setup in the section below.
+
+5. *(Optional)* **Launch at login** — see the section further down.
+
+### Re-enabling a denied consent
+
+If you clicked *Don't Allow*, turn it back on under:
+
+**System Settings → Privacy & Security → Automation** → expand **PlayNotch** and
+enable Music / Spotify / your browser.
+
+> **Note:** PlayNotch is **ad-hoc signed** (not notarized). The very first launch
+> may need *System Settings → Privacy & Security → "Open Anyway"*, or a
+> right-click → **Open** on `build/PlayNotch.app`.
+
+---
+
+## Permissions reference
+
+PlayNotch reads and controls the players through system automation, so it needs
+one **Automation** consent per controlled app. These are the standard macOS TCC
+permissions and can always be reviewed in **System Settings → Privacy &
+Security → Automation**.
+
+| Player        | Consent needed                                    |
+|---------------|---------------------------------------------------|
+| Apple Music   | Automation → control **Music**                    |
+| Spotify       | Automation → control **Spotify**                  |
+| YouTube Music | Automation → control your **browser** (+ JS, below) |
 
 ### YouTube Music only
 
 YT Music has no automation interface of its own, so PlayNotch drives the
-**browser tab** where `music.youtube.com` is open. You need to enable the
-JavaScript permission once:
+**browser tab** where `music.youtube.com` is open. In addition to the Automation
+consent, you must enable the **JavaScript from Apple Events** permission once:
 
 - **Safari**: *Develop → "Allow JavaScript from Apple Events"* menu
   (if you don't see the Develop menu: *Settings → Advanced → "Show Develop
