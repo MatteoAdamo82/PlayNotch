@@ -98,8 +98,13 @@ final class YouTubeMusicSource: MediaSource {
 
     func setVolume(_ value: Double) {
         let v = min(max(value, 0), 1)
-        let js = "(function(){var e=document.querySelector('video');"
-            + "if(e){e.volume=\(v);e.muted=false;}return 'ok';})()"
+        let pct = Int((v * 100).rounded())
+        // Drive YTM's player API so the change sticks (setting <video>.volume
+        // gets reverted by YTM's own volume state); fall back to the element.
+        let js = "(function(){var mp=document.querySelector('#movie_player');"
+            + "if(mp&&typeof mp.setVolume==='function'){mp.setVolume(\(pct));"
+            + "if(\(pct)>0&&typeof mp.unMute==='function'){mp.unMute();}return 'ok';}"
+            + "var e=document.querySelector('video');if(e){e.volume=\(v);e.muted=false;}return 'ok';})()"
         runCommand(js)
     }
 
@@ -174,7 +179,11 @@ final class YouTubeMusicSource: MediaSource {
         "var dur=(v&&isFinite(v.duration)&&v.duration>0)?v.duration:0;" +
         "var pos=(v&&isFinite(v.currentTime))?v.currentTime:0;" +
         "if(!dur){var s=document.querySelector('#progress-bar');if(s){var mx=parseFloat(s.getAttribute('aria-valuemax'));if(isFinite(mx)&&mx>0){dur=mx;var nw=parseFloat(s.getAttribute('aria-valuenow'));if(isFinite(nw)){pos=nw;}}}}" +
-        "var vol=(v&&isFinite(v.volume))?v.volume:1;" +
+        // Read the volume from YTM's own player API (getVolume is 0-100), not
+        // the raw <video>.volume which YTM keeps overwriting from its own state.
+        "var mp=document.querySelector('#movie_player');var vol=1;" +
+        "if(mp&&typeof mp.getVolume==='function'){vol=(mp.isMuted&&mp.isMuted())?0:(mp.getVolume()/100);}" +
+        "else if(v&&isFinite(v.volume)){vol=v.volume;}" +
         "var bar=document.querySelector('ytmusic-player-bar');" +
         "var rm=bar?(bar.getAttribute('repeat-mode')||''):'';" +
         // Shuffle has no state attribute, but the button is colored white when
