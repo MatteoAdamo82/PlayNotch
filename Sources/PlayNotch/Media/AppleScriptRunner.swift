@@ -27,6 +27,15 @@ enum AppleScriptRunner {
         run(source)?.stringValue
     }
 
+    /// Parse a number produced by AppleScript's `as string`, which uses the
+    /// system locale — so on e.g. an Italian Mac decimals come back with a
+    /// comma ("295,28"). `Double` only accepts a dot, so fall back to swapping
+    /// the separator.
+    static func double(_ s: String?) -> Double? {
+        guard let s, !s.isEmpty else { return nil }
+        return Double(s) ?? Double(s.replacingOccurrences(of: ",", with: "."))
+    }
+
     /// Check whether an app with the given bundle id is running, without
     /// launching it.
     static func isRunning(bundleID: String) -> Bool {

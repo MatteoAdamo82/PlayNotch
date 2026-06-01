@@ -18,7 +18,7 @@ final class AppleMusicSource: MediaSource {
         tell application "Music"
             if it is not running then return ""
             try
-                set st to player state as string
+                set pstate to player state as string
             on error
                 return ""
             end try
@@ -45,9 +45,9 @@ final class AppleMusicSource: MediaSource {
                 set theAlbum to album of t
                 set theDur to ((duration of t) as string)
             on error
-                return st & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep
+                return pstate & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep
             end try
-            return st & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep
+            return pstate & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep
         end tell
         """
 
@@ -71,11 +71,11 @@ final class AppleMusicSource: MediaSource {
             artist: parts[2],
             album: parts[3],
             state: state,
-            duration: Double(parts[4]),
-            position: Double(parts[5]),
+            duration: AppleScriptRunner.double(parts[4]),
+            position: AppleScriptRunner.double(parts[5]),
             artworkURL: nil,
             artworkData: fetchArtwork(),
-            volume: Double(parts[6]).map { $0 / 100 },
+            volume: AppleScriptRunner.double(parts[6]).map { $0 / 100 },
             isShuffle: parts[7] == "true",
             repeatMode: Self.parseRepeat(parts[8])
         )
