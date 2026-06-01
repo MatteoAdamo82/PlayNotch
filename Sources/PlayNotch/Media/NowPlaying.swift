@@ -48,6 +48,8 @@ struct NowPlaying: Equatable {
     var isShuffle: Bool?
     /// Repeat mode, if known.
     var repeatMode: RepeatMode?
+    /// Whether the track is favorited/liked (nil = source doesn't support it).
+    var isFavorite: Bool?
 
     static func == (lhs: NowPlaying, rhs: NowPlaying) -> Bool {
         lhs.app == rhs.app &&
@@ -86,4 +88,12 @@ protocol MediaSource: AnyObject {
 
     /// Advance the repeat mode (off → all → one → off).
     func cycleRepeat()
+
+    /// Toggle the favorite/like state of the current track.
+    func toggleFavorite()
+}
+
+extension MediaSource {
+    /// Default: sources that can't favorite do nothing.
+    func toggleFavorite() {}
 }

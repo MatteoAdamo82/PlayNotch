@@ -44,16 +44,17 @@ final class AppleMusicSource: MediaSource {
                 set theArtist to artist of t
                 set theAlbum to album of t
                 set theDur to ((duration of t) as string)
+                set theLoved to (loved of t as string)
             on error
-                return pstate & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep
+                return pstate & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep & tab & "false"
             end try
-            return pstate & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep
+            return pstate & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep & tab & theLoved
         end tell
         """
 
         guard let raw = AppleScriptRunner.string(script), !raw.isEmpty else { return nil }
         let parts = raw.components(separatedBy: "\t")
-        guard parts.count >= 9 else { return nil }
+        guard parts.count >= 10 else { return nil }
 
         let state: PlaybackState
         switch parts[0] {
@@ -77,7 +78,8 @@ final class AppleMusicSource: MediaSource {
             artworkData: fetchArtwork(),
             volume: AppleScriptRunner.double(parts[6]).map { $0 / 100 },
             isShuffle: parts[7] == "true",
-            repeatMode: Self.parseRepeat(parts[8])
+            repeatMode: Self.parseRepeat(parts[8]),
+            isFavorite: parts[9] == "true"
         )
     }
 
@@ -136,5 +138,9 @@ final class AppleMusicSource: MediaSource {
             end if
         end tell
         """)
+    }
+
+    func toggleFavorite() {
+        AppleScriptRunner.run(#"tell application "Music" to set loved of current track to not (loved of current track)"#)
     }
 }

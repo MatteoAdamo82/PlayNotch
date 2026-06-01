@@ -86,6 +86,7 @@ final class MediaController {
     func setVolume(_ value: Double) { activeSource()?.setVolume(value) }
     func toggleShuffle() { activeSource()?.toggleShuffle() }
     func cycleRepeat() { activeSource()?.cycleRepeat() }
+    func toggleFavorite() { activeSource()?.toggleFavorite() }
 
     private func activeSource() -> MediaSource? {
         if let activeApp, let s = source(for: activeApp) { return s }

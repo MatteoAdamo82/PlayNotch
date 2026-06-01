@@ -28,6 +28,8 @@ final class NotchViewModel: ObservableObject {
     @Published private(set) var isShuffle: Bool?
     /// Repeat mode (nil = unknown for this source).
     @Published private(set) var repeatMode: RepeatMode?
+    /// Favorite/like state (nil = source doesn't support it → hide the heart).
+    @Published private(set) var isFavorite: Bool?
 
     /// Geometry, supplied by the controller from screen metrics.
     @Published var collapsedSize: CGSize = CGSize(width: 200, height: 32)
@@ -98,6 +100,7 @@ final class NotchViewModel: ObservableObject {
             }
             isShuffle = snapshot.isShuffle
             repeatMode = snapshot.repeatMode
+            isFavorite = snapshot.isFavorite
         } else {
             // Scriptable apps briefly report nothing *between* tracks. Don't blank
             // the UI on a single empty poll — keep the last known state for one
@@ -177,6 +180,12 @@ final class NotchViewModel: ObservableObject {
             }
         }
         media.cycleRepeat()
+        bumpRefresh()
+    }
+
+    func toggleFavorite() {
+        if let f = isFavorite { isFavorite = !f }
+        media.toggleFavorite()
         bumpRefresh()
     }
 

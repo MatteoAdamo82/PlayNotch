@@ -38,7 +38,7 @@ final class YouTubeMusicSource: MediaSource {
                   !raw.isEmpty else { continue }
 
             let parts = raw.components(separatedBy: "\t")
-            guard parts.count >= 10 else { continue }
+            guard parts.count >= 11 else { continue }
 
             let title = parts[1]
             guard !title.isEmpty else { continue }
@@ -59,7 +59,8 @@ final class YouTubeMusicSource: MediaSource {
                 artworkData: nil,
                 volume: Double(parts[7]),
                 isShuffle: parts[8].isEmpty ? nil : (parts[8] == "true"),
-                repeatMode: Self.parseRepeatMode(parts[9])
+                repeatMode: Self.parseRepeatMode(parts[9]),
+                isFavorite: parts[10].isEmpty ? nil : (parts[10] == "LIKE")
             )
         }
         return nil
@@ -82,6 +83,7 @@ final class YouTubeMusicSource: MediaSource {
 
     func toggleShuffle() { runCommand(Self.shuffleJS) }
     func cycleRepeat() { runCommand(Self.repeatJS) }
+    func toggleFavorite() { runCommand(Self.likeJS) }
 
     /// YTM exposes repeat as a non-localized `repeat-mode` attribute on
     /// `<ytmusic-player-bar>`: NONE / ALL / ONE.
@@ -179,8 +181,10 @@ final class YouTubeMusicSource: MediaSource {
         // active and grey when not — read its computed color's red channel.
         "var sb=document.querySelector('ytmusic-player-bar .shuffle');" +
         "var shuf='';if(sb){var sc=getComputedStyle(sb).color;var sr=parseInt((sc.split('(')[1]||'0').split(',')[0]);if(isFinite(sr)){shuf=(sr>190)?'true':'false';}}" +
+        "var lr=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer');" +
+        "var like=lr?(lr.getAttribute('like-status')||''):'';" +
         "var TAB=String.fromCharCode(9);" +
-        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+shuf+TAB+rm;})()"
+        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+shuf+TAB+rm+TAB+like;})()"
 
     private static let playPauseJS =
         "(function(){var p=document.querySelector('#play-pause-button');" +
@@ -204,4 +208,10 @@ final class YouTubeMusicSource: MediaSource {
     private static let repeatJS =
         "(function(){var e=document.querySelector('ytmusic-player-bar .repeat');"
         + "if(e){e.click();}return 'ok';})()"
+
+    // Click the like (thumbs-up) button — the last button in the like renderer
+    // (the first is dislike), language-independent.
+    private static let likeJS =
+        "(function(){var lr=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer');"
+        + "if(lr){var b=lr.querySelectorAll('button');if(b.length){b[b.length-1].click();}}return 'ok';})()"
 }

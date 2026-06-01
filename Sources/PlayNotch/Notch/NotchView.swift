@@ -89,10 +89,24 @@ struct NotchView: View {
 
                     Spacer()
 
-                    // Source app icon, pinned to the top-right of the card.
-                    Image(systemName: np.app.symbolName)
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.55))
+                    HStack(spacing: 12) {
+                        // Favorite / like — only when the source supports it.
+                        if viewModel.isFavorite != nil {
+                            Button { viewModel.toggleFavorite() } label: {
+                                Image(systemName: viewModel.isFavorite == true ? "heart.fill" : "heart")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(viewModel.isFavorite == true ? viewModel.accentColor : Color.white.opacity(0.5))
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .animation(.easeOut(duration: 0.15), value: viewModel.isFavorite)
+                        }
+
+                        // Source app icon, pinned to the top-right of the card.
+                        Image(systemName: np.app.symbolName)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.55))
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
