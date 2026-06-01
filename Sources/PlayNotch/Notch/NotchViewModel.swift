@@ -12,12 +12,25 @@ final class NotchViewModel: ObservableObject {
 
     /// Resolved artwork image for the current track.
     @Published private(set) var artwork: NSImage? {
-        didSet { accentColor = artwork?.vibrantColor().map { Color(nsColor: $0) } ?? .white }
+        didSet { recomputeAccent() }
     }
 
     /// A vibrant accent colour derived from the current artwork (white when
-    /// there's no artwork), used to theme the card, bars and toggles.
+    /// there's no artwork or theming is off), used to theme the card and bars.
     @Published private(set) var accentColor: Color = .white
+
+    /// Whether to tint the notch with the artwork's accent colour.
+    @Published var themingEnabled: Bool = (UserDefaults.standard.object(forKey: "themingEnabled") as? Bool) ?? true {
+        didSet {
+            UserDefaults.standard.set(themingEnabled, forKey: "themingEnabled")
+            recomputeAccent()
+        }
+    }
+
+    private func recomputeAccent() {
+        let ns = themingEnabled ? artwork?.vibrantColor() : nil
+        accentColor = ns.map { Color(nsColor: $0) } ?? .white
+    }
 
     /// Output volume in 0...1 of the active source.
     @Published var volume: Double = 1

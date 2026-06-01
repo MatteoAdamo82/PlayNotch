@@ -48,6 +48,11 @@ final class NotchController {
         layout()
     }
 
+    // MARK: - Settings (exposed to the status-bar menu)
+
+    var isThemingEnabled: Bool { viewModel.themingEnabled }
+    func setThemingEnabled(_ on: Bool) { viewModel.themingEnabled = on }
+
     // MARK: - Window
 
     private func buildWindow() {

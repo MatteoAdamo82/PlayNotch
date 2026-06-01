@@ -2,10 +2,13 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var notchController: NotchController?
+    private var statusItemController: StatusItemController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        notchController = NotchController()
-        notchController?.start()
+        let controller = NotchController()
+        controller.start()
+        notchController = controller
+        statusItemController = StatusItemController(notch: controller)
 
         // Reposition / rebuild the notch when the screen layout changes
         // (display connected/disconnected, resolution change, etc.).
