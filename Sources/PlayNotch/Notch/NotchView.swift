@@ -297,12 +297,16 @@ private struct ExtraControls: View {
     private func iconButton(_ symbol: String, active: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(active ? Color.white : Color.white.opacity(0.4))
-                .frame(width: 26, height: 26)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(active ? Color.black : Color.white.opacity(0.45))
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle().fill(active ? Color.white : Color.white.opacity(0.12))
+                )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.15), value: active)
     }
 }
 

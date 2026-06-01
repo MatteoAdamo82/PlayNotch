@@ -59,7 +59,7 @@ final class YouTubeMusicSource: MediaSource {
                 artworkData: nil,
                 volume: Double(parts[7]),
                 isShuffle: parts[8].isEmpty ? nil : (parts[8] == "true"),
-                repeatMode: nil
+                repeatMode: Self.parseRepeatMode(parts[9])
             )
         }
         return nil
@@ -82,6 +82,17 @@ final class YouTubeMusicSource: MediaSource {
 
     func toggleShuffle() { runCommand(Self.shuffleJS) }
     func cycleRepeat() { runCommand(Self.repeatJS) }
+
+    /// YTM exposes repeat as a non-localized `repeat-mode` attribute on
+    /// `<ytmusic-player-bar>`: NONE / ALL / ONE.
+    private static func parseRepeatMode(_ s: String) -> RepeatMode? {
+        switch s {
+        case "ALL", "ALL_QUEUE": return .all
+        case "ONE": return .one
+        case "NONE": return .off
+        default: return nil
+        }
+    }
 
     func setVolume(_ value: Double) {
         let v = min(max(value, 0), 1)
@@ -162,8 +173,14 @@ final class YouTubeMusicSource: MediaSource {
         "var pos=(v&&isFinite(v.currentTime))?v.currentTime:0;" +
         "if(!dur){var s=document.querySelector('#progress-bar');if(s){var mx=parseFloat(s.getAttribute('aria-valuemax'));if(isFinite(mx)&&mx>0){dur=mx;var nw=parseFloat(s.getAttribute('aria-valuenow'));if(isFinite(nw)){pos=nw;}}}}" +
         "var vol=(v&&isFinite(v.volume))?v.volume:1;" +
+        "var bar=document.querySelector('ytmusic-player-bar');" +
+        "var rm=bar?(bar.getAttribute('repeat-mode')||''):'';" +
+        // Shuffle has no state attribute, but the button is colored white when
+        // active and grey when not — read its computed color's red channel.
+        "var sb=document.querySelector('ytmusic-player-bar .shuffle');" +
+        "var shuf='';if(sb){var sc=getComputedStyle(sb).color;var sr=parseInt((sc.split('(')[1]||'0').split(',')[0]);if(isFinite(sr)){shuf=(sr>190)?'true':'false';}}" +
         "var TAB=String.fromCharCode(9);" +
-        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+''+TAB+'';})()"
+        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+shuf+TAB+rm;})()"
 
     private static let playPauseJS =
         "(function(){var p=document.querySelector('#play-pause-button');" +
@@ -176,12 +193,15 @@ final class YouTubeMusicSource: MediaSource {
     private static let prevJS =
         "(function(){var p=document.querySelector('.previous-button');if(p){p.click();}return 'ok';})()"
 
-    // Best-effort: match the player-bar buttons by aria-label (works for an
-    // English UI). Unquoted attribute values keep the JS free of double quotes
-    // and backslashes, as required when embedded in the AppleScript literal.
+    // The player-bar wrapper buttons carry stable, language-independent class
+    // names (`.shuffle` / `.repeat`) even when the UI is localized. We click the
+    // `yt-icon-button` wrapper itself (clicking the inner <button> doesn't fire
+    // YTM's Polymer tap handler) — the same way the transport buttons work.
     private static let shuffleJS =
-        "(function(){var b=document.querySelector('[aria-label*=shuffle i]');if(b){b.click();}return 'ok';})()"
+        "(function(){var e=document.querySelector('ytmusic-player-bar .shuffle');"
+        + "if(e){e.click();}return 'ok';})()"
 
     private static let repeatJS =
-        "(function(){var b=document.querySelector('[aria-label*=repeat i]');if(b){b.click();}return 'ok';})()"
+        "(function(){var e=document.querySelector('ytmusic-player-bar .repeat');"
+        + "if(e){e.click();}return 'ok';})()"
 }
