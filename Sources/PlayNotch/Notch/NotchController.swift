@@ -20,7 +20,7 @@ final class NotchController {
 
     // Fixed window canvas. Generous enough to hold the expanded card; the
     // collapsed notch lives at the top-center of this same canvas.
-    private let canvasWidth: CGFloat = 460
+    private let canvasWidth: CGFloat = 480
     private let canvasHeight: CGFloat = 240
 
     func start() {
@@ -164,7 +164,7 @@ final class NotchController {
     private func applyMetrics() {
         let metrics = NotchMetrics.current()
         viewModel.collapsedSize = CGSize(width: metrics.collapsedWidth, height: metrics.height)
-        viewModel.expandedSize = CGSize(width: min(420, canvasWidth - 20), height: 205)
+        viewModel.expandedSize = CGSize(width: min(440, canvasWidth - 20), height: 202)
     }
 
     /// The fixed window frame: full canvas, centered horizontally under the

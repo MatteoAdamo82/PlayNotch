@@ -108,12 +108,12 @@ struct NotchView: View {
                             .foregroundStyle(.white.opacity(0.55))
                     }
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
+                .padding(.horizontal, 28)
+                .padding(.top, 6)
 
                 if let dur = viewModel.duration, dur > 0 {
                     ProgressBar(viewModel: viewModel)
-                        .padding(.horizontal, 18)
+                        .padding(.horizontal, 28)
                         .padding(.top, 10)
                 }
 
@@ -128,7 +128,7 @@ struct NotchView: View {
                         VolumeBar(viewModel: viewModel)
                     }
                 }
-                .padding(.horizontal, 18)
+                .padding(.horizontal, 28)
                 .padding(.top, 10)
             } else {
                 Spacer()
@@ -168,25 +168,58 @@ private struct ProgressBar: View {
     @ObservedObject var viewModel: NotchViewModel
     /// Non-nil while the user is dragging: the fraction under the finger.
     @State private var scrubFraction: Double?
+    /// Mouse x over the bar while hovering (nil when the pointer is away).
+    @State private var hoverX: CGFloat?
 
     var body: some View {
         TimelineView(.periodic(from: .now, by: 0.2)) { _ in
             let duration = viewModel.duration ?? 0
             let livePosition = viewModel.currentPosition()
-            let fraction = scrubFraction ?? (duration > 0 ? livePosition / duration : 0)
-            let shownPosition = scrubFraction.map { $0 * duration } ?? livePosition
+            let liveFraction = duration > 0 ? min(max(livePosition / duration, 0), 1) : 0
 
             VStack(spacing: 4) {
                 GeometryReader { geo in
                     let width = geo.size.width
+                    let target: Double? = scrubFraction ?? hoverX.map { min(max($0 / width, 0), 1) }
+                    let active = target != nil
+                    let knob = target ?? liveFraction
+                    let lo = min(liveFraction, knob)
+                    let hi = max(liveFraction, knob)
+
+                    // Only the 4pt bar lives in the ZStack — its height never
+                    // changes. The taller time bubble is an overlay, which can't
+                    // resize the bar, so nothing grows or shifts on hover.
                     ZStack(alignment: .leading) {
-                        Capsule().fill(.white.opacity(0.18))
+                        Capsule().fill(.white.opacity(0.18)).frame(height: 4)
                         Capsule().fill(viewModel.accentColor)
-                            .frame(width: max(0, min(1, fraction)) * width)
+                            .frame(width: lo * width, height: 4)
+                        if active {
+                            Capsule().fill(.white.opacity(0.9))
+                                .frame(width: (hi - lo) * width, height: 4)
+                                .offset(x: lo * width)
+                        }
                     }
-                    .frame(height: 4)
                     .frame(maxHeight: .infinity, alignment: .center)
-                    .contentShape(Rectangle())
+                    .overlay(alignment: .leading) {
+                        if let target {
+                            Text(Self.time(target * duration))
+                                .font(.system(size: 10, weight: .semibold).monospacedDigit())
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(.black.opacity(0.85)))
+                                .fixedSize()
+                                .offset(x: min(max(target * width - 18, 0), max(0, width - 36)), y: -22)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .contentShape(Rectangle().inset(by: -8))
+                    .onContinuousHover { phase in
+                        switch phase {
+                        case .active(let location): hoverX = location.x
+                        case .ended: hoverX = nil
+                        }
+                    }
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { v in
@@ -199,12 +232,12 @@ private struct ProgressBar: View {
                             }
                     )
                 }
-                .frame(height: 14)
+                .frame(height: 12)
 
                 HStack {
-                    Text(Self.time(shownPosition))
+                    Text(Self.time(livePosition))
                     Spacer()
-                    Text(Self.time(duration))
+                    Text("-" + Self.time(duration - livePosition))
                 }
                 .font(.system(size: 9, weight: .medium).monospacedDigit())
                 .foregroundStyle(.white.opacity(0.45))
@@ -336,9 +369,13 @@ private struct ExtraControls: View {
 
 // MARK: - Decorations
 
-/// A rounded-rectangle-ish shape that is flat on top (it hugs the screen
-/// edge) and rounded on the bottom corners — the classic notch silhouette.
+/// The classic notch silhouette: flush with the screen edge at the top, where
+/// the two corners flare out with a small concave curve (like the real notch),
+/// vertical sides, and convex rounded bottom corners.
 struct NotchShape: Shape {
+    /// Concave flare where the top meets the screen edge.
+    var topRadius: CGFloat = 9
+    /// Convex radius of the two bottom corners (animates collapsed ↔ expanded).
     var bottomRadius: CGFloat
 
     var animatableData: CGFloat {
@@ -348,15 +385,27 @@ struct NotchShape: Shape {
 
     func path(in rect: CGRect) -> Path {
         var p = Path()
-        let r = min(bottomRadius, min(rect.width, rect.height) / 2)
+        let tr = min(topRadius, rect.width / 2)
+        let br = min(bottomRadius, max(0, (rect.width - 2 * tr) / 2), rect.height / 2)
+
+        // Top edge (full width, flush with the screen).
         p.move(to: CGPoint(x: rect.minX, y: rect.minY))
         p.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
-        p.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - r))
-        p.addArc(center: CGPoint(x: rect.maxX - r, y: rect.maxY - r),
-                 radius: r, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
-        p.addLine(to: CGPoint(x: rect.minX + r, y: rect.maxY))
-        p.addArc(center: CGPoint(x: rect.minX + r, y: rect.maxY - r),
-                 radius: r, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        // Top-right concave flare down into the right side.
+        p.addQuadCurve(to: CGPoint(x: rect.maxX - tr, y: rect.minY + tr),
+                       control: CGPoint(x: rect.maxX - tr, y: rect.minY))
+        // Right side down to the bottom-right convex corner.
+        p.addLine(to: CGPoint(x: rect.maxX - tr, y: rect.maxY - br))
+        p.addArc(center: CGPoint(x: rect.maxX - tr - br, y: rect.maxY - br),
+                 radius: br, startAngle: .degrees(0), endAngle: .degrees(90), clockwise: false)
+        // Bottom edge to the bottom-left convex corner.
+        p.addLine(to: CGPoint(x: rect.minX + tr + br, y: rect.maxY))
+        p.addArc(center: CGPoint(x: rect.minX + tr + br, y: rect.maxY - br),
+                 radius: br, startAngle: .degrees(90), endAngle: .degrees(180), clockwise: false)
+        // Left side up, then the top-left concave flare back to the screen edge.
+        p.addLine(to: CGPoint(x: rect.minX + tr, y: rect.minY + tr))
+        p.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.minY),
+                       control: CGPoint(x: rect.minX + tr, y: rect.minY))
         p.closeSubpath()
         return p
     }
