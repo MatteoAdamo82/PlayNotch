@@ -27,12 +27,14 @@ struct NotchView: View {
         // surface horizontally; the Spacer keeps it pinned to the top.
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                // Black at the top (so the collapsed strip merges with the
-                // physical notch) fading into a soft tint of the artwork accent
-                // toward the bottom of the expanded card.
+                // Solid, opaque black base — keeps the card fully opaque so text
+                // always has contrast regardless of what's behind the window.
+                shape.fill(Color.black)
+                // A soft accent tint layered on top, fading in toward the bottom
+                // of the expanded card (top stays black to merge with the notch).
                 shape.fill(
                     LinearGradient(
-                        colors: [.black, .black, viewModel.accentColor.opacity(expanded ? 0.22 : 0)],
+                        colors: [.clear, .clear, viewModel.accentColor.opacity(expanded ? 0.32 : 0)],
                         startPoint: .top, endPoint: .bottom
                     )
                 )
