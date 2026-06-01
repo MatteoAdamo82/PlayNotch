@@ -2,17 +2,24 @@ import Foundation
 
 /// Aggregates all media sources and decides which one is "active".
 ///
-/// Selection rule:
-///   1. Prefer a source that is currently `playing`.
-///   2. Otherwise keep the previously active source if it is still running
-///      and has a track (so pausing doesn't make the widget jump around).
-///   3. Otherwise fall back to the first running source with a track.
+/// Selection rule, in order:
+///   1. A source that *just started* playing (was not playing last poll) grabs
+///      control — so the last thing you hit play on wins, even if another app
+///      is also playing.
+///   2. Keep the active source while it keeps playing.
+///   3. Any other source that is currently playing (e.g. after you pause the
+///      active one, hand off to whatever is still playing).
+///   4. Keep the previously active source if it's still present but paused, so
+///      the widget doesn't jump around.
+///   5. Fall back to the first available source.
 final class MediaController {
     private let sources: [MediaSource]
     private var activeApp: MediaApp?
+    /// Last seen playback state per app, to detect "just started playing".
+    private var lastStates: [MediaApp: PlaybackState] = [:]
 
     init() {
-        // Order matters as a tie-breaker.
+        // Order matters only as a final tie-breaker.
         self.sources = [
             AppleMusicSource(),
             SpotifySource(),
@@ -31,22 +38,38 @@ final class MediaController {
 
         guard !snapshots.isEmpty else {
             activeApp = nil
+            lastStates = [:]
             return nil
         }
 
-        // 1. Anything actively playing wins.
-        if let playing = snapshots.first(where: { $0.state == .playing }) {
-            activeApp = playing.app
-            return playing
-        }
+        let playing = snapshots.filter { $0.state == .playing }
+        // Sources that transitioned into playing since the last poll.
+        let justStarted = playing.filter { lastStates[$0.app] != .playing }
 
-        // 2. Stick with the previously active source if still present.
-        if let active = activeApp,
-           let kept = snapshots.first(where: { $0.app == active }) {
+        // Record current states for the next poll's transition detection.
+        var states: [MediaApp: PlaybackState] = [:]
+        for snap in snapshots { states[snap.app] = snap.state }
+        lastStates = states
+
+        // 1. The source you most recently started playing wins.
+        if let started = justStarted.first {
+            activeApp = started.app
+            return started
+        }
+        // 2. Keep the active source while it's still playing.
+        if let active = activeApp, let kept = playing.first(where: { $0.app == active }) {
             return kept
         }
-
-        // 3. Fall back to the first available.
+        // 3. Otherwise hand off to any source that is playing.
+        if let anyPlaying = playing.first {
+            activeApp = anyPlaying.app
+            return anyPlaying
+        }
+        // 4. Nothing playing: keep the previously active source if still present.
+        if let active = activeApp, let kept = snapshots.first(where: { $0.app == active }) {
+            return kept
+        }
+        // 5. Fall back to the first available.
         let first = snapshots[0]
         activeApp = first.app
         return first
