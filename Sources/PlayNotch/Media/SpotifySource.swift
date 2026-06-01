@@ -22,6 +22,16 @@ final class SpotifySource: MediaSource {
             end try
             set theVol to (sound volume as string)
             try
+                set theShuf to (shuffling as string)
+            on error
+                set theShuf to "false"
+            end try
+            try
+                set theRep to (repeating as string)
+            on error
+                set theRep to "false"
+            end try
+            try
                 set t to current track
                 set theTitle to name of t
                 set theArtist to artist of t
@@ -30,15 +40,15 @@ final class SpotifySource: MediaSource {
                 set theDur to (((duration of t) / 1000) as string)
                 set pos to ((player position) as string)
             on error
-                return st & tab & "" & tab & "" & tab & "" & tab & "" & tab & "0" & tab & "0" & tab & theVol
+                return st & tab & "" & tab & "" & tab & "" & tab & "" & tab & "0" & tab & "0" & tab & theVol & tab & theShuf & tab & theRep
             end try
-            return st & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theArt & tab & theDur & tab & pos & tab & theVol
+            return st & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theArt & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep
         end tell
         """
 
         guard let raw = AppleScriptRunner.string(script), !raw.isEmpty else { return nil }
         let parts = raw.components(separatedBy: "\t")
-        guard parts.count >= 8 else { return nil }
+        guard parts.count >= 10 else { return nil }
 
         let state: PlaybackState
         switch parts[0] {
@@ -60,7 +70,9 @@ final class SpotifySource: MediaSource {
             position: Double(parts[6]),
             artworkURL: URL(string: parts[4]),
             artworkData: nil,
-            volume: Double(parts[7]).map { $0 / 100 }
+            volume: Double(parts[7]).map { $0 / 100 },
+            isShuffle: parts[8] == "true",
+            repeatMode: parts[9] == "true" ? .all : .off
         )
     }
 
@@ -75,5 +87,15 @@ final class SpotifySource: MediaSource {
     func setVolume(_ value: Double) {
         let v = Int((min(max(value, 0), 1) * 100).rounded())
         AppleScriptRunner.run(#"tell application "Spotify" to set sound volume to \#(v)"#)
+    }
+
+    func toggleShuffle() {
+        AppleScriptRunner.run(#"tell application "Spotify" to set shuffling to not shuffling"#)
+    }
+
+    // Spotify's AppleScript exposes repeat only as a boolean, so we toggle
+    // between off and repeat-all (no separate repeat-one).
+    func cycleRepeat() {
+        AppleScriptRunner.run(#"tell application "Spotify" to set repeating to not repeating"#)
     }
 }

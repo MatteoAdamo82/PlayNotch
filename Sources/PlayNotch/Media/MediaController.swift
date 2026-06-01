@@ -61,6 +61,8 @@ final class MediaController {
     func previousTrack() { activeSource()?.previousTrack() }
     func seek(to seconds: Double) { activeSource()?.seek(to: seconds) }
     func setVolume(_ value: Double) { activeSource()?.setVolume(value) }
+    func toggleShuffle() { activeSource()?.toggleShuffle() }
+    func cycleRepeat() { activeSource()?.cycleRepeat() }
 
     private func activeSource() -> MediaSource? {
         if let activeApp, let s = source(for: activeApp) { return s }

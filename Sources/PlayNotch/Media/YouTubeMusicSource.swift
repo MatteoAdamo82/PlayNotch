@@ -38,7 +38,7 @@ final class YouTubeMusicSource: MediaSource {
                   !raw.isEmpty else { continue }
 
             let parts = raw.components(separatedBy: "\t")
-            guard parts.count >= 8 else { continue }
+            guard parts.count >= 10 else { continue }
 
             let title = parts[1]
             guard !title.isEmpty else { continue }
@@ -57,7 +57,9 @@ final class YouTubeMusicSource: MediaSource {
                 position: Double(parts[6]),
                 artworkURL: URL(string: parts[4]),
                 artworkData: nil,
-                volume: Double(parts[7])
+                volume: Double(parts[7]),
+                isShuffle: parts[8].isEmpty ? nil : (parts[8] == "true"),
+                repeatMode: nil
             )
         }
         return nil
@@ -77,6 +79,9 @@ final class YouTubeMusicSource: MediaSource {
             + "if(v){v.currentTime=\(seconds);}return 'ok';})()"
         runCommand(js)
     }
+
+    func toggleShuffle() { runCommand(Self.shuffleJS) }
+    func cycleRepeat() { runCommand(Self.repeatJS) }
 
     func setVolume(_ value: Double) {
         let v = min(max(value, 0), 1)
@@ -158,7 +163,7 @@ final class YouTubeMusicSource: MediaSource {
         "if(!dur){var s=document.querySelector('#progress-bar');if(s){var mx=parseFloat(s.getAttribute('aria-valuemax'));if(isFinite(mx)&&mx>0){dur=mx;var nw=parseFloat(s.getAttribute('aria-valuenow'));if(isFinite(nw)){pos=nw;}}}}" +
         "var vol=(v&&isFinite(v.volume))?v.volume:1;" +
         "var TAB=String.fromCharCode(9);" +
-        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol;})()"
+        "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+''+TAB+'';})()"
 
     private static let playPauseJS =
         "(function(){var p=document.querySelector('#play-pause-button');" +
@@ -170,4 +175,13 @@ final class YouTubeMusicSource: MediaSource {
 
     private static let prevJS =
         "(function(){var p=document.querySelector('.previous-button');if(p){p.click();}return 'ok';})()"
+
+    // Best-effort: match the player-bar buttons by aria-label (works for an
+    // English UI). Unquoted attribute values keep the JS free of double quotes
+    // and backslashes, as required when embedded in the AppleScript literal.
+    private static let shuffleJS =
+        "(function(){var b=document.querySelector('[aria-label*=shuffle i]');if(b){b.click();}return 'ok';})()"
+
+    private static let repeatJS =
+        "(function(){var b=document.querySelector('[aria-label*=repeat i]');if(b){b.click();}return 'ok';})()"
 }

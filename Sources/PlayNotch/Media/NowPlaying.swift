@@ -21,6 +21,12 @@ enum PlaybackState {
     case stopped
 }
 
+enum RepeatMode {
+    case off
+    case all
+    case one
+}
+
 /// Immutable snapshot of what is currently playing.
 struct NowPlaying: Equatable {
     var app: MediaApp
@@ -38,6 +44,10 @@ struct NowPlaying: Equatable {
     var artworkData: Data?
     /// Output volume in 0...1, if known.
     var volume: Double?
+    /// Whether shuffle is on, if known.
+    var isShuffle: Bool?
+    /// Repeat mode, if known.
+    var repeatMode: RepeatMode?
 
     static func == (lhs: NowPlaying, rhs: NowPlaying) -> Bool {
         lhs.app == rhs.app &&
@@ -70,4 +80,10 @@ protocol MediaSource: AnyObject {
 
     /// Set the output volume, where `value` is in 0...1.
     func setVolume(_ value: Double)
+
+    /// Toggle shuffle on/off.
+    func toggleShuffle()
+
+    /// Advance the repeat mode (off → all → one → off).
+    func cycleRepeat()
 }

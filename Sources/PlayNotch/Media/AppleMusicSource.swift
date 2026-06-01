@@ -23,6 +23,16 @@ final class AppleMusicSource: MediaSource {
                 return ""
             end try
             set theVol to (sound volume as string)
+            try
+                set theShuf to (shuffle enabled as string)
+            on error
+                set theShuf to "false"
+            end try
+            try
+                set theRep to (song repeat as string)
+            on error
+                set theRep to "off"
+            end try
             if player position is missing value then
                 set pos to "0"
             else
@@ -35,15 +45,15 @@ final class AppleMusicSource: MediaSource {
                 set theAlbum to album of t
                 set theDur to ((duration of t) as string)
             on error
-                return st & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol
+                return st & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep
             end try
-            return st & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol
+            return st & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep
         end tell
         """
 
         guard let raw = AppleScriptRunner.string(script), !raw.isEmpty else { return nil }
         let parts = raw.components(separatedBy: "\t")
-        guard parts.count >= 7 else { return nil }
+        guard parts.count >= 9 else { return nil }
 
         let state: PlaybackState
         switch parts[0] {
@@ -65,8 +75,18 @@ final class AppleMusicSource: MediaSource {
             position: Double(parts[5]),
             artworkURL: nil,
             artworkData: fetchArtwork(),
-            volume: Double(parts[6]).map { $0 / 100 }
+            volume: Double(parts[6]).map { $0 / 100 },
+            isShuffle: parts[7] == "true",
+            repeatMode: Self.parseRepeat(parts[8])
         )
+    }
+
+    private static func parseRepeat(_ s: String) -> RepeatMode {
+        switch s {
+        case "all": return .all
+        case "one": return .one
+        default: return .off
+        }
     }
 
     /// Artwork comes back as raw image data from the scripting bridge.
@@ -97,5 +117,24 @@ final class AppleMusicSource: MediaSource {
     func setVolume(_ value: Double) {
         let v = Int((min(max(value, 0), 1) * 100).rounded())
         AppleScriptRunner.run(#"tell application "Music" to set sound volume to \#(v)"#)
+    }
+
+    func toggleShuffle() {
+        AppleScriptRunner.run(#"tell application "Music" to set shuffle enabled to not (shuffle enabled)"#)
+    }
+
+    func cycleRepeat() {
+        AppleScriptRunner.run("""
+        tell application "Music"
+            set r to song repeat
+            if r is off then
+                set song repeat to all
+            else if r is all then
+                set song repeat to one
+            else
+                set song repeat to off
+            end if
+        end tell
+        """)
     }
 }

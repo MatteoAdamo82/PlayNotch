@@ -47,25 +47,9 @@ struct NotchView: View {
 
     // MARK: - Collapsed
 
-    /// The slim notch strip: app icon on the left of the camera housing, a
-    /// playing indicator on the right.
+    /// The collapsed strip is just the bare black notch.
     private var collapsedContent: some View {
-        HStack {
-            if let np = viewModel.nowPlaying {
-                Image(systemName: np.app.symbolName)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.85))
-                Spacer()
-                if np.state == .playing {
-                    PlayingBars()
-                        .frame(width: 14, height: 12)
-                        .foregroundStyle(.white.opacity(0.85))
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .frame(height: viewModel.collapsedSize.height)
-        .frame(maxWidth: .infinity, alignment: .top)
+        Color.clear.frame(height: viewModel.collapsedSize.height)
     }
 
     // MARK: - Expanded
@@ -76,7 +60,7 @@ struct NotchView: View {
             Spacer().frame(height: viewModel.collapsedSize.height)
 
             if let np = viewModel.nowPlaying {
-                HStack(spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
                     artworkView
                         .frame(width: 64, height: 64)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -90,12 +74,15 @@ struct NotchView: View {
                             .font(.system(size: 12))
                             .foregroundStyle(.white.opacity(0.7))
                             .lineLimit(1)
-                        Text(np.app.rawValue)
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.4))
-                            .lineLimit(1)
                     }
+                    .padding(.top, 2)
+
                     Spacer()
+
+                    // Source app icon, pinned to the top-right of the card.
+                    Image(systemName: np.app.symbolName)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.55))
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 12)
@@ -106,12 +93,19 @@ struct NotchView: View {
                         .padding(.top, 10)
                 }
 
-                TransportControls(viewModel: viewModel, state: np.state)
-                    .padding(.top, 8)
-
-                VolumeBar(viewModel: viewModel)
-                    .padding(.horizontal, 18)
-                    .padding(.top, 10)
+                // Transport stays centered; shuffle/repeat sit on the left and
+                // the compact volume control on the right, so the transport
+                // never shifts regardless of the side controls.
+                ZStack {
+                    TransportControls(viewModel: viewModel, state: np.state)
+                    HStack {
+                        ExtraControls(viewModel: viewModel)
+                        Spacer()
+                        VolumeBar(viewModel: viewModel)
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
             } else {
                 Spacer()
                 Text("Niente in riproduzione")
@@ -217,33 +211,31 @@ private struct VolumeBar: View {
         }
     }
 
+    /// Fixed track width so the transport controls stay visually centered.
+    private let trackWidth: CGFloat = 64
+
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.system(size: 10))
                 .foregroundStyle(.white.opacity(0.6))
-                .frame(width: 16, alignment: .leading)
+                .frame(width: 14, alignment: .leading)
 
-            GeometryReader { geo in
-                let width = geo.size.width
-                let fraction = min(max(viewModel.volume, 0), 1)
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.18))
-                    Capsule()
-                        .fill(.white.opacity(viewModel.isAdjustingVolume ? 1 : 0.7))
-                        .frame(width: fraction * width)
-                }
-                .frame(height: 4)
-                .frame(maxHeight: .infinity, alignment: .center)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { v in
-                            viewModel.setVolume(toFraction: v.location.x / width)
-                        }
-                )
+            let fraction = min(max(viewModel.volume, 0), 1)
+            ZStack(alignment: .leading) {
+                Capsule().fill(.white.opacity(0.18))
+                Capsule()
+                    .fill(.white.opacity(viewModel.isAdjustingVolume ? 1 : 0.7))
+                    .frame(width: fraction * trackWidth)
             }
-            .frame(height: 14)
+            .frame(width: trackWidth, height: 4)
+            .contentShape(Rectangle().inset(by: -10))
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { v in
+                        viewModel.setVolume(toFraction: v.location.x / trackWidth)
+                    }
+            )
         }
         .animation(.easeOut(duration: 0.15), value: viewModel.volume)
     }
@@ -256,7 +248,7 @@ private struct TransportControls: View {
     let state: PlaybackState
 
     var body: some View {
-        HStack(spacing: 28) {
+        HStack(spacing: 18) {
             controlButton("backward.fill") { viewModel.previousTrack() }
             controlButton(state == .playing ? "pause.fill" : "play.fill", size: 22) {
                 viewModel.playPause()
@@ -270,7 +262,44 @@ private struct TransportControls: View {
             Image(systemName: symbol)
                 .font(.system(size: size, weight: .medium))
                 .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
+                .frame(width: 34, height: 34)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Shuffle / repeat
+
+/// Secondary controls on the left of the transport row.
+private struct ExtraControls: View {
+    @ObservedObject var viewModel: NotchViewModel
+
+    private var repeatSymbol: String {
+        viewModel.repeatMode == .one ? "repeat.1" : "repeat"
+    }
+    private var repeatActive: Bool {
+        guard let r = viewModel.repeatMode else { return false }
+        return r != .off
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            iconButton("shuffle", active: viewModel.isShuffle == true) {
+                viewModel.toggleShuffle()
+            }
+            iconButton(repeatSymbol, active: repeatActive) {
+                viewModel.cycleRepeat()
+            }
+        }
+    }
+
+    private func iconButton(_ symbol: String, active: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(active ? Color.white : Color.white.opacity(0.4))
+                .frame(width: 26, height: 26)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -278,38 +307,6 @@ private struct TransportControls: View {
 }
 
 // MARK: - Decorations
-
-/// Animated equalizer bars shown while playing.
-private struct PlayingBars: View {
-    @State private var phase: CGFloat = 0
-
-    var body: some View {
-        GeometryReader { geo in
-            let barCount = 3
-            let spacing: CGFloat = 2
-            let barWidth = (geo.size.width - spacing * CGFloat(barCount - 1)) / CGFloat(barCount)
-            HStack(alignment: .bottom, spacing: spacing) {
-                ForEach(0..<barCount, id: \.self) { i in
-                    let h = heightFactor(for: i)
-                    RoundedRectangle(cornerRadius: 1)
-                        .frame(width: barWidth, height: geo.size.height * h)
-                }
-            }
-            .frame(maxHeight: .infinity, alignment: .bottom)
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
-                phase = 1
-            }
-        }
-    }
-
-    private func heightFactor(for index: Int) -> CGFloat {
-        let bases: [CGFloat] = [0.4, 0.9, 0.6]
-        let swing: [CGFloat] = [0.5, 0.1, 0.4]
-        return bases[index] + (phase * swing[index] - swing[index] / 2)
-    }
-}
 
 /// A rounded-rectangle-ish shape that is flat on top (it hugs the screen
 /// edge) and rounded on the bottom corners — the classic notch silhouette.

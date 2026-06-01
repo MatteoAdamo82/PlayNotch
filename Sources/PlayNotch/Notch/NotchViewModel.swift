@@ -17,6 +17,11 @@ final class NotchViewModel: ObservableObject {
     /// True briefly after a volume change, to highlight the volume control.
     @Published private(set) var isAdjustingVolume = false
 
+    /// Shuffle on/off (nil = unknown for this source).
+    @Published private(set) var isShuffle: Bool?
+    /// Repeat mode (nil = unknown for this source).
+    @Published private(set) var repeatMode: RepeatMode?
+
     /// Geometry, supplied by the controller from screen metrics.
     @Published var collapsedSize: CGSize = CGSize(width: 200, height: 32)
     @Published var expandedSize: CGSize = CGSize(width: 380, height: 160)
@@ -84,6 +89,8 @@ final class NotchViewModel: ObservableObject {
             if !isAdjustingVolume, let v = snapshot.volume {
                 volume = min(max(v, 0), 1)
             }
+            isShuffle = snapshot.isShuffle
+            repeatMode = snapshot.repeatMode
         } else {
             // Scriptable apps briefly report nothing *between* tracks. Don't blank
             // the UI on a single empty poll — keep the last known state for one
@@ -146,6 +153,25 @@ final class NotchViewModel: ObservableObject {
     func playPause() { media.playPause(); bumpRefresh() }
     func nextTrack() { media.nextTrack(); bumpRefresh() }
     func previousTrack() { media.previousTrack(); bumpRefresh() }
+
+    func toggleShuffle() {
+        // Optimistic flip so the icon reacts instantly; the poll re-syncs.
+        if let s = isShuffle { isShuffle = !s }
+        media.toggleShuffle()
+        bumpRefresh()
+    }
+
+    func cycleRepeat() {
+        if let r = repeatMode {
+            switch r {
+            case .off: repeatMode = .all
+            case .all: repeatMode = .one
+            case .one: repeatMode = .off
+            }
+        }
+        media.cycleRepeat()
+        bumpRefresh()
+    }
 
     /// Give the target app a beat to update, then re-read state.
     private func bumpRefresh() {
