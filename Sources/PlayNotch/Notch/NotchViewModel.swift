@@ -1,5 +1,6 @@
 import AppKit
 import Combine
+import SwiftUI
 
 @MainActor
 final class NotchViewModel: ObservableObject {
@@ -10,7 +11,13 @@ final class NotchViewModel: ObservableObject {
     @Published private(set) var nowPlaying: NowPlaying?
 
     /// Resolved artwork image for the current track.
-    @Published private(set) var artwork: NSImage?
+    @Published private(set) var artwork: NSImage? {
+        didSet { accentColor = artwork?.vibrantColor().map { Color(nsColor: $0) } ?? .white }
+    }
+
+    /// A vibrant accent colour derived from the current artwork (white when
+    /// there's no artwork), used to theme the card, bars and toggles.
+    @Published private(set) var accentColor: Color = .white
 
     /// Output volume in 0...1 of the active source.
     @Published var volume: Double = 1

@@ -27,7 +27,15 @@ struct NotchView: View {
         // surface horizontally; the Spacer keeps it pinned to the top.
         VStack(spacing: 0) {
             ZStack(alignment: .top) {
-                shape.fill(Color.black)
+                // Black at the top (so the collapsed strip merges with the
+                // physical notch) fading into a soft tint of the artwork accent
+                // toward the bottom of the expanded card.
+                shape.fill(
+                    LinearGradient(
+                        colors: [.black, .black, viewModel.accentColor.opacity(expanded ? 0.22 : 0)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
 
                 // Cross-fade collapsed <-> expanded content. Both are laid out
                 // inside the animating frame and clipped to the shape.
@@ -157,7 +165,7 @@ private struct ProgressBar: View {
                     let width = geo.size.width
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.18))
-                        Capsule().fill(.white.opacity(0.85))
+                        Capsule().fill(viewModel.accentColor)
                             .frame(width: max(0, min(1, fraction)) * width)
                     }
                     .frame(height: 4)
@@ -225,7 +233,7 @@ private struct VolumeBar: View {
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.18))
                 Capsule()
-                    .fill(.white.opacity(viewModel.isAdjustingVolume ? 1 : 0.7))
+                    .fill(viewModel.accentColor.opacity(viewModel.isAdjustingVolume ? 1 : 0.85))
                     .frame(width: fraction * trackWidth)
             }
             .frame(width: trackWidth, height: 4)
@@ -301,7 +309,7 @@ private struct ExtraControls: View {
                 .foregroundStyle(active ? Color.black : Color.white.opacity(0.45))
                 .frame(width: 24, height: 24)
                 .background(
-                    Circle().fill(active ? Color.white : Color.white.opacity(0.12))
+                    Circle().fill(active ? viewModel.accentColor : Color.white.opacity(0.12))
                 )
                 .contentShape(Rectangle())
         }
