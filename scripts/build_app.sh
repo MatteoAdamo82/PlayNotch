@@ -1,12 +1,12 @@
 #!/bin/bash
-# Build iNotch and package it as a runnable .app bundle.
+# Build PlayNotch and package it as a runnable .app bundle.
 # Usage: ./scripts/build_app.sh [--run]
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-APP_NAME="iNotch"
-BUNDLE_ID="com.inotch.app"
+APP_NAME="PlayNotch"
+BUNDLE_ID="com.playnotch.app"
 CONFIG="release"
 BUILD_DIR=".build/${CONFIG}"
 APP_DIR="build/${APP_NAME}.app"
@@ -45,7 +45,7 @@ cat > "${APP_DIR}/Contents/Info.plist" <<PLIST
     <key>LSUIElement</key>
     <true/>
     <key>NSAppleEventsUsageDescription</key>
-    <string>iNotch needs to control Music and Spotify to show and manage what is playing.</string>
+    <string>PlayNotch needs to control Music and Spotify to show and manage what is playing.</string>
 </dict>
 </plist>
 PLIST

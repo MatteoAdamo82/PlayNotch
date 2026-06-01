@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "iNotch",
+    name: "PlayNotch",
     platforms: [
         .macOS(.v14)
     ],
     targets: [
         .executableTarget(
-            name: "iNotch",
-            path: "Sources/iNotch",
+            name: "PlayNotch",
+            path: "Sources/PlayNotch",
             swiftSettings: [
                 .swiftLanguageMode(.v5)
             ]

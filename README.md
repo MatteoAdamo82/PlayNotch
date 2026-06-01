@@ -1,8 +1,7 @@
-# iNotch
+# PlayNotch
 
 An **interactive macOS notch** with a built-in music controller for
-**Apple Music**, **Spotify** and **YouTube Music**. Inspired by
-*Notch Dock: Control Center*.
+**Apple Music**, **Spotify** and **YouTube Music**.
 
 Move the mouse over the notch (the black strip at the top center of the screen)
 and it expands into a card with artwork, title, artist, a scrubbable progress
@@ -33,10 +32,10 @@ From the project folder:
 
 This command:
 1. builds in *release*,
-2. creates the `build/iNotch.app` bundle,
+2. creates the `build/PlayNotch.app` bundle,
 3. kills any running instance and launches the app.
 
-The notch appears at the top. **There is no Dock icon**: iNotch runs as a
+The notch appears at the top. **There is no Dock icon**: PlayNotch runs as a
 background (agent) app.
 
 ### Other useful commands
@@ -51,23 +50,23 @@ swift build -c release      # just compile, without building the .app
 Since there's no Dock icon, quit it from the terminal:
 
 ```bash
-pkill -f "iNotch.app/Contents/MacOS"
+pkill -f "PlayNotch.app/Contents/MacOS"
 ```
 
 ---
 
 ## Permissions (one-time setup)
 
-iNotch reads and controls the players through system automation. On the **first
+PlayNotch reads and controls the players through system automation. On the **first
 command** macOS will ask for authorization: click **OK**. If you denied it,
 re-enable it under:
 
-**System Settings → Privacy & Security → Automation** → enable iNotch for
+**System Settings → Privacy & Security → Automation** → enable PlayNotch for
 Music / Spotify / your browser.
 
 ### YouTube Music only
 
-YT Music has no automation interface of its own, so iNotch drives the
+YT Music has no automation interface of its own, so PlayNotch drives the
 **browser tab** where `music.youtube.com` is open. You need to enable the
 JavaScript permission once:
 
@@ -111,7 +110,7 @@ multiple players are active, the one currently playing wins.
 ## Project structure
 
 ```
-Sources/iNotch/
+Sources/PlayNotch/
   main.swift              agent app (.accessory, no Dock)
   AppDelegate.swift       startup + reacting to screen changes
   Media/
@@ -135,7 +134,7 @@ scripts/
 
 ## Launch at login (optional)
 
-For now it starts manually. To launch it automatically, add `build/iNotch.app`
+For now it starts manually. To launch it automatically, add `build/PlayNotch.app`
 under **System Settings → General → Login Items**. (An app-managed login item
 is on the roadmap.)
 
