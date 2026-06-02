@@ -154,7 +154,9 @@ final class NotchController {
             shouldExpand = cursorInside(notchRectInScreen(expanded: false), cursor)
         }
         if viewModel.isExpanded != shouldExpand {
-            withAnimation(.easeOut(duration: 0.28)) {
+            // Smooth, critically-damped spring: lively but no overshoot, so the
+            // notch never detaches from the screen edge on open.
+            withAnimation(.spring(response: 0.32, dampingFraction: 1.0)) {
                 viewModel.isExpanded = shouldExpand
             }
         }

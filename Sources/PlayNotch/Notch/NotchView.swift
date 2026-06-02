@@ -53,6 +53,7 @@ struct NotchView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .animation(.easeInOut(duration: 0.2), value: viewModel.nowPlaying)
+        .animation(.easeInOut(duration: 0.5), value: viewModel.accentColor)
     }
 
     // MARK: - Collapsed
@@ -74,6 +75,9 @@ struct NotchView: View {
                     artworkView
                         .frame(width: 64, height: 64)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .id(np.title + np.album)
+                        .transition(.opacity.combined(with: .scale(scale: 0.94)))
+                        .animation(.easeInOut(duration: 0.35), value: viewModel.artwork)
                         .contentShape(Rectangle())
                         .onTapGesture { viewModel.activateSource() }
                         .help("Open in \(np.app.rawValue)")
@@ -114,11 +118,11 @@ struct NotchView: View {
                 .padding(.horizontal, 28)
                 .padding(.top, 6)
 
-                if let dur = viewModel.duration, dur > 0 {
-                    ProgressBar(viewModel: viewModel)
-                        .padding(.horizontal, 28)
-                        .padding(.top, 10)
-                }
+                // Always mounted (even mid-skip when duration is briefly
+                // unknown) so the controls below never jump.
+                ProgressBar(viewModel: viewModel)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 10)
 
                 // Transport stays centered; shuffle/repeat sit on the left and
                 // the compact volume control on the right, so the transport
