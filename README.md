@@ -18,6 +18,8 @@ quick system toggles. No Dock icon — everything lives in a menu-bar item.
 Built with **SwiftPM, no Xcode**, controlling the players through AppleScript
 (Music/Spotify) and injected JavaScript (YouTube Music) — no private APIs.
 
+📖 **Read the story:** [How (and why) I built PlayNotch](https://mautoblog.com/en/posts/playnotch-macos-notch-music-controller-swift-2026/)
+
 ---
 
 ## Requirements
