@@ -9,6 +9,7 @@ import SwiftUI
 /// the content can never spill past the notch silhouette.
 struct NotchView: View {
     @ObservedObject var viewModel: NotchViewModel
+    @StateObject private var system = SystemControls()
 
     private var expanded: Bool { viewModel.isExpanded }
     private var radius: CGFloat { expanded ? 22 : 10 }
@@ -137,6 +138,15 @@ struct NotchView: View {
                 }
                 .padding(.horizontal, 28)
                 .padding(.top, 10)
+
+                Divider()
+                    .overlay(Color.white.opacity(0.1))
+                    .padding(.horizontal, 28)
+                    .padding(.top, 10)
+
+                ControlCenterRow(system: system, accent: viewModel.accentColor)
+                    .padding(.horizontal, 28)
+                    .padding(.top, 8)
             } else {
                 Spacer()
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
@@ -339,6 +349,58 @@ private struct VolumeBar: View {
             )
         }
         .animation(.easeOut(duration: 0.15), value: viewModel.volume)
+    }
+}
+
+// MARK: - Control Center row
+
+/// System toggles under the music controls: dark mode, keep-awake, lock screen.
+private struct ControlCenterRow: View {
+    @ObservedObject var system: SystemControls
+    let accent: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            tile(appearanceIcon, appearanceLabel, on: system.appearance != .light) {
+                system.cycleAppearance()
+            }
+            tile("cup.and.saucer.fill", "Awake", on: system.isAwake) { system.toggleAwake() }
+            tile("powersleep", "Sleep", on: false) { system.sleepDisplay() }
+        }
+    }
+
+    private var appearanceIcon: String {
+        switch system.appearance {
+        case .light: return "sun.max.fill"
+        case .dark:  return "moon.fill"
+        case .auto:  return "circle.lefthalf.filled"
+        }
+    }
+    private var appearanceLabel: String {
+        switch system.appearance {
+        case .light: return "Light"
+        case .dark:  return "Dark"
+        case .auto:  return "Auto"
+        }
+    }
+
+    private func tile(_ icon: String, _ label: String, on: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 5) {
+                Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+                Text(label).font(.system(size: 11, weight: .medium))
+            }
+            .foregroundStyle(on ? Color.black : Color.white.opacity(0.8))
+            .frame(maxWidth: .infinity)
+            .frame(height: 26)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(on ? accent : Color.white.opacity(0.1))
+            )
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .animation(.easeOut(duration: 0.15), value: on)
     }
 }
 
