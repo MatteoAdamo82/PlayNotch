@@ -31,14 +31,39 @@ struct NotchView: View {
                 // Solid, opaque black base — keeps the card fully opaque so text
                 // always has contrast regardless of what's behind the window.
                 shape.fill(Color.black)
-                // A soft accent tint layered on top, fading in toward the bottom
-                // of the expanded card (top stays black to merge with the notch).
-                shape.fill(
-                    LinearGradient(
-                        colors: [.clear, .clear, viewModel.accentColor.opacity(expanded ? 0.32 : 0)],
-                        startPoint: .top, endPoint: .bottom
+                // Blurred, dimmed artwork filling the expanded card (kept black
+                // at the very top so the notch strip stays dark).
+                if viewModel.artworkBackgroundEnabled, let art = viewModel.artwork {
+                    Image(nsImage: art)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: notchWidth, height: notchHeight)
+                        .blur(radius: 34)
+                        .opacity(expanded ? 0.30 : 0)
+                        .clipped()
+                        .allowsHitTesting(false)
+                    // Black gradient over the top so the notch strip stays dark,
+                    // fading out smoothly (no hard edge) into the artwork below.
+                    shape.fill(
+                        LinearGradient(stops: [
+                            .init(color: .black, location: 0),
+                            .init(color: .black, location: 0.12),
+                            .init(color: .clear, location: 0.36),
+                        ], startPoint: .top, endPoint: .bottom)
                     )
-                )
+                    .opacity(expanded ? 1 : 0)
+                    .allowsHitTesting(false)
+                }
+                // A soft accent tint (only with theming on; otherwise the card
+                // stays fully black like the notch).
+                if viewModel.themingEnabled {
+                    shape.fill(
+                        LinearGradient(
+                            colors: [.clear, .clear, viewModel.accentColor.opacity(expanded ? 0.32 : 0)],
+                            startPoint: .top, endPoint: .bottom
+                        )
+                    )
+                }
 
                 // Cross-fade collapsed <-> expanded content. Both are laid out
                 // inside the animating frame and clipped to the shape.
@@ -49,6 +74,9 @@ struct NotchView: View {
             }
             .frame(width: notchWidth, height: notchHeight)
             .clipShape(shape)
+            // Scale the whole expanded card (shape + contents) uniformly, pinned
+            // at the top, so the layout doesn't leave gaps or overflow.
+            .scaleEffect(expanded ? viewModel.sizeScale : 1, anchor: .top)
 
             Spacer(minLength: 0)
         }
@@ -139,14 +167,16 @@ struct NotchView: View {
                 .padding(.horizontal, 28)
                 .padding(.top, 10)
 
-                Divider()
-                    .overlay(Color.white.opacity(0.1))
-                    .padding(.horizontal, 28)
-                    .padding(.top, 10)
+                if viewModel.showControlCenter {
+                    Divider()
+                        .overlay(Color.white.opacity(0.1))
+                        .padding(.horizontal, 28)
+                        .padding(.top, 10)
 
-                ControlCenterRow(system: system, accent: viewModel.accentColor)
-                    .padding(.horizontal, 28)
-                    .padding(.top, 8)
+                    ControlCenterRow(system: system, accent: viewModel.accentColor)
+                        .padding(.horizontal, 28)
+                        .padding(.top, 8)
+                }
             } else {
                 Spacer()
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in

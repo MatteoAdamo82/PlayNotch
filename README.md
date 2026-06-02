@@ -53,7 +53,9 @@ PlayNotch adds a small **♪ icon to the menu bar** — its home for settings,
 since there's no Dock icon. From its menu you can:
 
 - toggle **Launch at Login**,
-- toggle **Theme from Artwork**,
+- toggle **Theme from Artwork** and a **Blurred Artwork Background**,
+- **Show Quick Toggles** (the Control Center row) on/off,
+- pick the **Notch Size** (Compact / Default / Large),
 - pick which display hosts the notch (**Show on Screen**),
 - jump to the **Automation** privacy settings,
 - **Quit** PlayNotch.
@@ -166,7 +168,10 @@ while it plays, and pausing it hands off to whatever else is still playing.
   like; hidden for Spotify, whose AppleScript can't save to library).
 - **Artwork theming**: a vibrant accent colour is extracted from the cover and
   applied to the card tint, progress and volume bars, and active toggles.
-  Toggle it from the menu-bar item.
+  Optionally show the **blurred cover as the card background**. With theming
+  off, the card stays fully black like the notch.
+- **Adjustable notch size** (Compact / Default / Large) — the whole card scales
+  uniformly, contents included.
 - **Click the artwork** to bring the source app to the front (YouTube Music
   focuses and un-minimizes its browser tab).
 - **Idle clock**: when nothing is playing, the card shows a live time + date.
@@ -222,9 +227,9 @@ sign it with your own Developer ID) for reliable login registration.
 - [x] Like / favorite and shuffle / repeat toggles
 - [x] Artwork-based theming
 - [x] Menu-bar item with launch at login + screen picker
-- [ ] Full-width artwork and "liquid" animations
+- [x] Blurred-artwork background and "liquid" animations
+- [x] Preferences (notch size, quick-toggles, screen, theming)
 - [x] Control Center row (appearance, keep-awake, sleep)
 - [ ] File dock / drag-and-drop into the notch
-- [ ] Preferences (notch sizing)
 - [ ] Notarization for distribution outside this Mac
 ```

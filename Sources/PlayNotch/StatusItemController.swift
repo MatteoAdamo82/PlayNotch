@@ -43,6 +43,29 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         theme.state = (notch?.isThemingEnabled ?? true) ? .on : .off
         menu.addItem(theme)
 
+        let bg = NSMenuItem(title: "Blurred Artwork Background", action: #selector(toggleArtworkBackground), keyEquivalent: "")
+        bg.target = self
+        bg.state = (notch?.isArtworkBackgroundEnabled ?? false) ? .on : .off
+        menu.addItem(bg)
+
+        let cc = NSMenuItem(title: "Show Quick Toggles", action: #selector(toggleControlCenter), keyEquivalent: "")
+        cc.target = self
+        cc.state = (notch?.isControlCenterShown ?? true) ? .on : .off
+        menu.addItem(cc)
+
+        let sizeItem = NSMenuItem(title: "Notch Size", action: nil, keyEquivalent: "")
+        let sizeMenu = NSMenu()
+        let current = notch?.sizeScale ?? 1.0
+        for (title, scale) in [("Compact", 0.9), ("Default", 1.0), ("Large", 1.12)] {
+            let item = NSMenuItem(title: title, action: #selector(pickSize(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = NSNumber(value: scale)
+            item.state = (abs(current - scale) < 0.001) ? .on : .off
+            sizeMenu.addItem(item)
+        }
+        sizeItem.submenu = sizeMenu
+        menu.addItem(sizeItem)
+
         if let notch {
             let screensItem = NSMenuItem(title: "Show on Screen", action: nil, keyEquivalent: "")
             let submenu = NSMenu()
@@ -98,6 +121,21 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func toggleTheming() {
         guard let notch else { return }
         notch.setThemingEnabled(!notch.isThemingEnabled)
+    }
+
+    @objc private func toggleArtworkBackground() {
+        guard let notch else { return }
+        notch.setArtworkBackgroundEnabled(!notch.isArtworkBackgroundEnabled)
+    }
+
+    @objc private func toggleControlCenter() {
+        guard let notch else { return }
+        notch.setControlCenterShown(!notch.isControlCenterShown)
+    }
+
+    @objc private func pickSize(_ sender: NSMenuItem) {
+        guard let s = (sender.representedObject as? NSNumber)?.doubleValue else { return }
+        notch?.setSizeScale(s)
     }
 
     @objc private func pickScreen(_ sender: NSMenuItem) {

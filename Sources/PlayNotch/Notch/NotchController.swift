@@ -20,8 +20,11 @@ final class NotchController {
 
     // Fixed window canvas. Generous enough to hold the expanded card; the
     // collapsed notch lives at the top-center of this same canvas.
-    private let canvasWidth: CGFloat = 480
-    private let canvasHeight: CGFloat = 290
+    // Sized to fit the largest preset; smaller presets just leave more
+    // transparent margin (the window is fixed, only the card inside scales).
+    private let canvasWidth: CGFloat = 540
+    private let canvasHeight: CGFloat = 330
+    private let baseExpandedWidth: CGFloat = 440
 
     func start() {
         buildWindow()
@@ -52,6 +55,21 @@ final class NotchController {
 
     var isThemingEnabled: Bool { viewModel.themingEnabled }
     func setThemingEnabled(_ on: Bool) { viewModel.themingEnabled = on }
+
+    var isArtworkBackgroundEnabled: Bool { viewModel.artworkBackgroundEnabled }
+    func setArtworkBackgroundEnabled(_ on: Bool) { viewModel.artworkBackgroundEnabled = on }
+
+    var isControlCenterShown: Bool { viewModel.showControlCenter }
+    func setControlCenterShown(_ on: Bool) {
+        viewModel.showControlCenter = on
+        layout()   // recompute card height
+    }
+
+    var sizeScale: Double { SizePreference.scale }
+    func setSizeScale(_ s: Double) {
+        SizePreference.scale = s
+        layout()
+    }
 
     /// Screens available + which one currently hosts the notch.
     var availableScreens: [NSScreen] { NSScreen.screens }
@@ -176,7 +194,10 @@ final class NotchController {
     private func applyMetrics() {
         let metrics = NotchMetrics.current()
         viewModel.collapsedSize = CGSize(width: metrics.collapsedWidth, height: metrics.height)
-        viewModel.expandedSize = CGSize(width: min(440, canvasWidth - 20), height: 250)
+        // Shorter card when the Control Center row is hidden.
+        let baseHeight: CGFloat = viewModel.showControlCenter ? 250 : 196
+        viewModel.expandedSize = CGSize(width: baseExpandedWidth, height: baseHeight)
+        viewModel.sizeScale = CGFloat(SizePreference.scale)
     }
 
     /// The fixed window frame: full canvas, centered horizontally under the
@@ -194,8 +215,9 @@ final class NotchController {
     /// The currently-visible notch rectangle inside the window (bottom-left
     /// origin), used for mouse hit-testing. Matches what SwiftUI draws.
     private func visibleNotchRect() -> NSRect {
-        let w = viewModel.isExpanded ? viewModel.expandedSize.width : viewModel.collapsedSize.width
-        let h = viewModel.isExpanded ? viewModel.expandedSize.height : viewModel.collapsedSize.height
+        let s = viewModel.sizeScale
+        let w = viewModel.isExpanded ? viewModel.expandedSize.width * s : viewModel.collapsedSize.width
+        let h = viewModel.isExpanded ? viewModel.expandedSize.height * s : viewModel.collapsedSize.height
         return NSRect(
             x: (canvasWidth - w) / 2,
             y: canvasHeight - h,   // top-aligned
@@ -218,8 +240,9 @@ final class NotchController {
     /// coordinates (bottom-left origin), used to decide whether the cursor is
     /// over the interactive region.
     private func notchRectInScreen(expanded: Bool) -> NSRect {
-        let w = expanded ? viewModel.expandedSize.width : viewModel.collapsedSize.width
-        let h = expanded ? viewModel.expandedSize.height : viewModel.collapsedSize.height
+        let s = viewModel.sizeScale
+        let w = expanded ? viewModel.expandedSize.width * s : viewModel.collapsedSize.width
+        let h = expanded ? viewModel.expandedSize.height * s : viewModel.collapsedSize.height
         let local = NSRect(
             x: (canvasWidth - w) / 2,
             y: canvasHeight - h,   // top-aligned
@@ -270,6 +293,18 @@ extension NSScreen {
     /// The CoreGraphics display ID — stable enough to remember a chosen screen.
     var displayID: UInt32 {
         (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+    }
+}
+
+/// Persisted scale factor for the expanded card (1.0 = default).
+enum SizePreference {
+    private static let key = "notchSizeScale"
+    static var scale: Double {
+        get {
+            let v = UserDefaults.standard.double(forKey: key)
+            return v == 0 ? 1.0 : v
+        }
+        set { UserDefaults.standard.set(newValue, forKey: key) }
     }
 }
 

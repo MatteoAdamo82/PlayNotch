@@ -32,6 +32,16 @@ final class NotchViewModel: ObservableObject {
         accentColor = ns.map { Color(nsColor: $0) } ?? .white
     }
 
+    /// Show the blurred artwork as the card background.
+    @Published var artworkBackgroundEnabled: Bool = (UserDefaults.standard.object(forKey: "artworkBackgroundEnabled") as? Bool) ?? false {
+        didSet { UserDefaults.standard.set(artworkBackgroundEnabled, forKey: "artworkBackgroundEnabled") }
+    }
+
+    /// Show the Control Center row (appearance / awake / sleep).
+    @Published var showControlCenter: Bool = (UserDefaults.standard.object(forKey: "showControlCenter") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(showControlCenter, forKey: "showControlCenter") }
+    }
+
     /// Output volume in 0...1 of the active source.
     @Published var volume: Double = 1
     /// True briefly after a volume change, to highlight the volume control.
@@ -46,7 +56,10 @@ final class NotchViewModel: ObservableObject {
 
     /// Geometry, supplied by the controller from screen metrics.
     @Published var collapsedSize: CGSize = CGSize(width: 200, height: 32)
+    /// Base (unscaled) expanded card size; the view applies `sizeScale`.
     @Published var expandedSize: CGSize = CGSize(width: 380, height: 160)
+    /// Uniform scale applied to the expanded card (1.0 = default).
+    @Published var sizeScale: CGFloat = 1
 
     private let media = MediaController()
     private var timer: Timer?
