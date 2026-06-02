@@ -231,6 +231,26 @@ sign it with your own Developer ID) for reliable login registration.
 
 ---
 
+## Limitations & notes
+
+- **YouTube Music** is driven by reading/clicking its web page (no public API),
+  so a future YouTube Music redesign can break it, and it needs the one-time
+  *Allow JavaScript from Apple Events* browser setting.
+- The collapsed strip matches the **physical notch width**, which varies by Mac;
+  on Macs without a notch it falls back to a tidy strip at the top center.
+- The app is **ad-hoc signed**, not notarized — the first launch may need
+  *right-click → Open* or *Privacy & Security → Open Anyway*.
+- State is polled once per second via AppleScript; impact is negligible, but
+  it's not event-driven.
+
+---
+
+## License
+
+[MIT](LICENSE) © 2026 Matteo Adamo.
+
+---
+
 ## Roadmap
 
 - [x] Progress bar + seek + volume control
