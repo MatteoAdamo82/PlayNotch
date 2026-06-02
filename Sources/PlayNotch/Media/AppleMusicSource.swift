@@ -143,4 +143,8 @@ final class AppleMusicSource: MediaSource {
     func toggleFavorite() {
         AppleScriptRunner.run(#"tell application "Music" to set loved of current track to not (loved of current track)"#)
     }
+
+    func activate() {
+        AppleScriptRunner.run(#"tell application "Music" to activate"#)
+    }
 }

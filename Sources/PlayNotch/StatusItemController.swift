@@ -43,6 +43,31 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         theme.state = (notch?.isThemingEnabled ?? true) ? .on : .off
         menu.addItem(theme)
 
+        if let notch {
+            let screensItem = NSMenuItem(title: "Show on Screen", action: nil, keyEquivalent: "")
+            let submenu = NSMenu()
+            let preferred = notch.preferredScreenID
+
+            let auto = NSMenuItem(title: "Automatic", action: #selector(pickScreen(_:)), keyEquivalent: "")
+            auto.target = self
+            auto.representedObject = NSNumber(value: UInt32(0))
+            auto.state = (preferred == 0) ? .on : .off
+            submenu.addItem(auto)
+            submenu.addItem(.separator())
+
+            for screen in notch.availableScreens {
+                let id = screen.displayID
+                let item = NSMenuItem(title: screen.localizedName, action: #selector(pickScreen(_:)), keyEquivalent: "")
+                item.target = self
+                item.representedObject = NSNumber(value: id)
+                // Tick the chosen screen, or the actual host when on Automatic.
+                item.state = (preferred == id || (preferred == 0 && notch.hostScreenID == id)) ? .on : .off
+                submenu.addItem(item)
+            }
+            screensItem.submenu = submenu
+            menu.addItem(screensItem)
+        }
+
         menu.addItem(.separator())
 
         let automation = NSMenuItem(title: "Open Automation Settings…", action: #selector(openAutomationSettings), keyEquivalent: "")
@@ -73,6 +98,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func toggleTheming() {
         guard let notch else { return }
         notch.setThemingEnabled(!notch.isThemingEnabled)
+    }
+
+    @objc private func pickScreen(_ sender: NSMenuItem) {
+        guard let id = (sender.representedObject as? NSNumber)?.uint32Value else { return }
+        notch?.setPreferredScreen(id)
     }
 
     @objc private func openAutomationSettings() {

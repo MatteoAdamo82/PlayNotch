@@ -98,4 +98,8 @@ final class SpotifySource: MediaSource {
     func cycleRepeat() {
         AppleScriptRunner.run(#"tell application "Spotify" to set repeating to not repeating"#)
     }
+
+    func activate() {
+        AppleScriptRunner.run(#"tell application "Spotify" to activate"#)
+    }
 }

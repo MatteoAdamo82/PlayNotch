@@ -53,6 +53,16 @@ final class NotchController {
     var isThemingEnabled: Bool { viewModel.themingEnabled }
     func setThemingEnabled(_ on: Bool) { viewModel.themingEnabled = on }
 
+    /// Screens available + which one currently hosts the notch.
+    var availableScreens: [NSScreen] { NSScreen.screens }
+    var hostScreenID: UInt32 { NotchMetrics.current().screen.displayID }
+    /// 0 = automatic.
+    var preferredScreenID: UInt32 { ScreenPreference.preferredDisplayID }
+    func setPreferredScreen(_ id: UInt32) {
+        ScreenPreference.preferredDisplayID = id
+        layout()
+    }
+
     // MARK: - Window
 
     private func buildWindow() {
@@ -228,9 +238,11 @@ struct NotchMetrics {
     let collapsedWidth: CGFloat
 
     static func current() -> NotchMetrics {
-        // Prefer the built-in display that actually has a notch.
+        // A user-picked screen wins; else the built-in display with a notch.
+        let preferred = ScreenPreference.preferredDisplayID
+        let chosen = preferred != 0 ? NSScreen.screens.first { $0.displayID == preferred } : nil
         let notched = NSScreen.screens.first { $0.safeAreaInsets.top > 0 }
-        let screen = notched ?? NSScreen.main ?? NSScreen.screens.first!
+        let screen = chosen ?? notched ?? NSScreen.main ?? NSScreen.screens.first!
 
         let top = screen.safeAreaInsets.top
         if top > 0, let width = physicalNotchWidth(of: screen) {
@@ -249,5 +261,21 @@ struct NotchMetrics {
               let right = screen.auxiliaryTopRightArea else { return nil }
         let width = screen.frame.width - left.width - right.width
         return width > 0 ? width : nil
+    }
+}
+
+extension NSScreen {
+    /// The CoreGraphics display ID — stable enough to remember a chosen screen.
+    var displayID: UInt32 {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+    }
+}
+
+/// Persisted choice of which display hosts the notch (0 = automatic).
+enum ScreenPreference {
+    private static let key = "preferredDisplayID"
+    static var preferredDisplayID: UInt32 {
+        get { UInt32(UserDefaults.standard.integer(forKey: key)) }
+        set { UserDefaults.standard.set(Int(newValue), forKey: key) }
     }
 }

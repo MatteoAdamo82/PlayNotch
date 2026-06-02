@@ -74,6 +74,9 @@ struct NotchView: View {
                     artworkView
                         .frame(width: 64, height: 64)
                         .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .contentShape(Rectangle())
+                        .onTapGesture { viewModel.activateSource() }
+                        .help("Open in \(np.app.rawValue)")
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(np.title)
@@ -132,9 +135,16 @@ struct NotchView: View {
                 .padding(.top, 10)
             } else {
                 Spacer()
-                Text("Niente in riproduzione")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.5))
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    VStack(spacing: 2) {
+                        Text(ctx.date, format: .dateTime.hour().minute())
+                            .font(.system(size: 36, weight: .semibold))
+                            .foregroundStyle(.white)
+                        Text(ctx.date, format: .dateTime.weekday(.wide).day().month(.wide))
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.5))
+                    }
+                }
                 Spacer()
             }
             Spacer(minLength: 0)

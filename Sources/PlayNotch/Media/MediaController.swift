@@ -87,6 +87,7 @@ final class MediaController {
     func toggleShuffle() { activeSource()?.toggleShuffle() }
     func cycleRepeat() { activeSource()?.cycleRepeat() }
     func toggleFavorite() { activeSource()?.toggleFavorite() }
+    func activate() { activeSource()?.activate() }
 
     private func activeSource() -> MediaSource? {
         if let activeApp, let s = source(for: activeApp) { return s }

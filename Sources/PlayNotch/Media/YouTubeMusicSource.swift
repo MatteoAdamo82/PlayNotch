@@ -85,6 +85,56 @@ final class YouTubeMusicSource: MediaSource {
     func cycleRepeat() { runCommand(Self.repeatJS) }
     func toggleFavorite() { runCommand(Self.likeJS) }
 
+    func activate() {
+        let targets: [Browser]
+        if let last = lastBrowser, AppleScriptRunner.isRunning(bundleID: last.bundleID) {
+            targets = [last]
+        } else {
+            targets = browsers.filter { AppleScriptRunner.isRunning(bundleID: $0.bundleID) }
+        }
+        guard let browser = targets.first else { return }
+        AppleScriptRunner.run(activateScript(for: browser))
+    }
+
+    /// Activate the browser and focus the first YouTube Music tab.
+    private func activateScript(for browser: Browser) -> String {
+        if browser.isSafari {
+            return """
+            tell application "\(browser.appName)"
+                activate
+                repeat with w in windows
+                    repeat with t in tabs of w
+                        if (URL of t) contains "music.youtube.com" then
+                            set current tab of w to t
+                            set miniaturized of w to false
+                            set index of w to 1
+                            return
+                        end if
+                    end repeat
+                end repeat
+            end tell
+            """
+        } else {
+            return """
+            tell application "\(browser.appName)"
+                activate
+                repeat with w in windows
+                    set i to 0
+                    repeat with t in tabs of w
+                        set i to i + 1
+                        if (URL of t) contains "music.youtube.com" then
+                            set active tab index of w to i
+                            set minimized of w to false
+                            set index of w to 1
+                            return
+                        end if
+                    end repeat
+                end repeat
+            end tell
+            """
+        }
+    }
+
     /// YTM exposes repeat as a non-localized `repeat-mode` attribute on
     /// `<ytmusic-player-bar>`: NONE / ALL / ONE.
     private static func parseRepeatMode(_ s: String) -> RepeatMode? {

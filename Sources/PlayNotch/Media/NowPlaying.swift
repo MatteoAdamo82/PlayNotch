@@ -91,6 +91,9 @@ protocol MediaSource: AnyObject {
 
     /// Toggle the favorite/like state of the current track.
     func toggleFavorite()
+
+    /// Bring the source app (or its tab) to the front.
+    func activate()
 }
 
 extension MediaSource {

@@ -202,6 +202,8 @@ final class NotchViewModel: ObservableObject {
         bumpRefresh()
     }
 
+    func activateSource() { media.activate() }
+
     /// Give the target app a beat to update, then re-read state.
     private func bumpRefresh() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
