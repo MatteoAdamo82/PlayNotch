@@ -78,10 +78,13 @@ final class NotchViewModel: ObservableObject {
     /// The current playback position in seconds, interpolated from the last
     /// poll so the progress bar advances smoothly without extra AppleScript.
     func currentPosition() -> Double {
-        var pos = anchorPosition
-        if anchorPlaying {
-            pos += Date().timeIntervalSince(anchorDate)
-        }
+        let elapsed = anchorPlaying ? Date().timeIntervalSince(anchorDate) : 0
+        return Self.interpolate(anchor: anchorPosition, elapsed: elapsed, duration: duration)
+    }
+
+    /// Pure interpolation: position = anchor + elapsed, clamped to [0, duration].
+    static func interpolate(anchor: Double, elapsed: TimeInterval, duration: Double?) -> Double {
+        let pos = anchor + elapsed
         if let duration { return min(max(pos, 0), duration) }
         return max(pos, 0)
     }
