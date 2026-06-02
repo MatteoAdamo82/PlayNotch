@@ -170,6 +170,9 @@ while it plays, and pausing it hands off to whatever else is still playing.
 - **Click the artwork** to bring the source app to the front (YouTube Music
   focuses and un-minimizes its browser tab).
 - **Idle clock**: when nothing is playing, the card shows a live time + date.
+- **Control Center row** under the music controls: cycle the system appearance
+  (Light / Dark / Auto), keep the Mac awake (`caffeinate`), and sleep the
+  display.
 - **Menu-bar item** for settings: launch at login, theming, pick which display
   hosts the notch (*Show on Screen*), quit.
 - Click-through everywhere outside the visible notch shape (the desktop and
@@ -220,7 +223,7 @@ sign it with your own Developer ID) for reliable login registration.
 - [x] Artwork-based theming
 - [x] Menu-bar item with launch at login + screen picker
 - [ ] Full-width artwork and "liquid" animations
-- [ ] Control Center–style panels (brightness, volume, toggles, shortcuts)
+- [x] Control Center row (appearance, keep-awake, sleep)
 - [ ] File dock / drag-and-drop into the notch
 - [ ] Preferences (notch sizing)
 - [ ] Notarization for distribution outside this Mac
