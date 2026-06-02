@@ -268,6 +268,8 @@ private struct ProgressBar: View {
 /// made via scrolling over the notch (the controller drives those).
 private struct VolumeBar: View {
     @ObservedObject var viewModel: NotchViewModel
+    /// Mouse x over the slider while hovering (nil when away).
+    @State private var hoverX: CGFloat?
 
     private var icon: String {
         switch viewModel.volume {
@@ -289,14 +291,42 @@ private struct VolumeBar: View {
                 .frame(width: 14, alignment: .leading)
 
             let fraction = min(max(viewModel.volume, 0), 1)
+            let hoverFraction = hoverX.map { min(max($0 / trackWidth, 0), 1) }
+            let lo = min(fraction, hoverFraction ?? fraction)
+            let hi = max(fraction, hoverFraction ?? fraction)
+
             ZStack(alignment: .leading) {
-                Capsule().fill(.white.opacity(0.18))
+                Capsule().fill(.white.opacity(0.18)).frame(height: 4)
                 Capsule()
                     .fill(viewModel.accentColor.opacity(viewModel.isAdjustingVolume ? 1 : 0.85))
-                    .frame(width: fraction * trackWidth)
+                    .frame(width: lo * trackWidth, height: 4)
+                if hoverFraction != nil {
+                    Capsule().fill(.white.opacity(0.9))
+                        .frame(width: (hi - lo) * trackWidth, height: 4)
+                        .offset(x: lo * trackWidth)
+                }
             }
             .frame(width: trackWidth, height: 4)
+            .overlay(alignment: .leading) {
+                if let hoverFraction {
+                    Text("\(Int((hoverFraction * 100).rounded()))%")
+                        .font(.system(size: 9, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(.black.opacity(0.85)))
+                        .fixedSize()
+                        .offset(x: min(max(hoverFraction * trackWidth - 14, -14), trackWidth - 14), y: -20)
+                        .allowsHitTesting(false)
+                }
+            }
             .contentShape(Rectangle().inset(by: -10))
+            .onContinuousHover { phase in
+                switch phase {
+                case .active(let location): hoverX = location.x
+                case .ended: hoverX = nil
+                }
+            }
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { v in
