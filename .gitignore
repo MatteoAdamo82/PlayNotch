@@ -17,3 +17,4 @@ xcuserdata/
 # Editor / misc
 *.swp
 *~
+docs/.DS_Store

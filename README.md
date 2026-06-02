@@ -1,14 +1,22 @@
 # PlayNotch
 
-An **interactive macOS notch** with a built-in music controller for
-**Apple Music**, **Spotify** and **YouTube Music**.
+> Turn the MacBook notch into a music controller for **Apple Music**, **Spotify**
+> and **YouTube Music** — hover to control, themed by your album art.
 
-Move the mouse over the notch (the black strip at the top center of the screen)
-and it expands into a card with artwork, title, artist, a scrubbable progress
-bar, a volume slider, shuffle / repeat / like toggles, and the controls
-⏮ previous · ⏯ play/pause · ⏭ next. The card is tinted with the artwork's
-accent colour, and it automatically follows whichever app you most recently
-started playing.
+![PlayNotch](docs/preview.png)
+
+PlayNotch is a lightweight, background macOS app that turns the notch (or a small
+strip at the top of any Mac) into an **interactive now-playing controller**.
+
+Hover the notch and it expands into a card with artwork, title, artist, a
+scrubbable **progress bar**, a **volume** slider, **shuffle / repeat / like**
+toggles, and ⏮ previous · ⏯ play/pause · ⏭ next. The card is **tinted by the
+album art** (optionally with a blurred-cover background), it **follows whichever
+app you most recently started playing**, and a Control-Center-style row adds
+quick system toggles. No Dock icon — everything lives in a menu-bar item.
+
+Built with **SwiftPM, no Xcode**, controlling the players through AppleScript
+(Music/Spotify) and injected JavaScript (YouTube Music) — no private APIs.
 
 ---
 
@@ -230,6 +238,4 @@ sign it with your own Developer ID) for reliable login registration.
 - [x] Blurred-artwork background and "liquid" animations
 - [x] Preferences (notch size, quick-toggles, screen, theming)
 - [x] Control Center row (appearance, keep-awake, sleep)
-- [ ] File dock / drag-and-drop into the notch
-- [ ] Notarization for distribution outside this Mac
 ```
