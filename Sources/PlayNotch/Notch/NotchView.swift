@@ -47,8 +47,8 @@ struct NotchView: View {
                     shape.fill(
                         LinearGradient(stops: [
                             .init(color: .black, location: 0),
-                            .init(color: .black, location: 0.12),
-                            .init(color: .clear, location: 0.36),
+                            .init(color: .black, location: 0.34),
+                            .init(color: .clear, location: 0.62),
                         ], startPoint: .top, endPoint: .bottom)
                     )
                     .opacity(expanded ? 1 : 0)
