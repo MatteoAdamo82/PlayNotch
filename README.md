@@ -54,6 +54,7 @@ since there's no Dock icon. From its menu you can:
 
 - toggle **Launch at Login**,
 - toggle **Theme from Artwork**,
+- pick which display hosts the notch (**Show on Screen**),
 - jump to the **Automation** privacy settings,
 - **Quit** PlayNotch.
 
@@ -166,7 +167,11 @@ while it plays, and pausing it hands off to whatever else is still playing.
 - **Artwork theming**: a vibrant accent colour is extracted from the cover and
   applied to the card tint, progress and volume bars, and active toggles.
   Toggle it from the menu-bar item.
-- **Menu-bar item** for settings (launch at login, theming, quit).
+- **Click the artwork** to bring the source app to the front (YouTube Music
+  focuses and un-minimizes its browser tab).
+- **Idle clock**: when nothing is playing, the card shows a live time + date.
+- **Menu-bar item** for settings: launch at login, theming, pick which display
+  hosts the notch (*Show on Screen*), quit.
 - Click-through everywhere outside the visible notch shape (the desktop and
   windows underneath stay fully clickable).
 
@@ -213,10 +218,10 @@ sign it with your own Developer ID) for reliable login registration.
 - [x] Progress bar + seek + volume control
 - [x] Like / favorite and shuffle / repeat toggles
 - [x] Artwork-based theming
-- [x] Menu-bar item with launch at login
+- [x] Menu-bar item with launch at login + screen picker
 - [ ] Full-width artwork and "liquid" animations
 - [ ] Control Center–style panels (brightness, volume, toggles, shortcuts)
 - [ ] File dock / drag-and-drop into the notch
-- [ ] Preferences (screen choice, sizing)
+- [ ] Preferences (notch sizing)
 - [ ] Notarization for distribution outside this Mac
 ```
