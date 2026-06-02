@@ -3,7 +3,7 @@
 > Turn the MacBook notch into a music controller for **Apple Music**, **Spotify**
 > and **YouTube Music** — hover to control, themed by your album art.
 
-![PlayNotch](docs/preview.png)
+![PlayNotch](docs/preview.jpeg)
 
 PlayNotch is a lightweight, background macOS app that turns the notch (or a small
 strip at the top of any Mac) into an **interactive now-playing controller**.
