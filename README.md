@@ -5,8 +5,10 @@ An **interactive macOS notch** with a built-in music controller for
 
 Move the mouse over the notch (the black strip at the top center of the screen)
 and it expands into a card with artwork, title, artist, a scrubbable progress
-bar, a volume slider, and the controls ⏮ previous · ⏯ play/pause · ⏭ next.
-It automatically picks whichever app is currently playing.
+bar, a volume slider, shuffle / repeat / like toggles, and the controls
+⏮ previous · ⏯ play/pause · ⏭ next. The card is tinted with the artwork's
+accent colour, and it automatically follows whichever app you most recently
+started playing.
 
 ---
 
@@ -45,13 +47,17 @@ swift build -c release      # just compile, without building the .app
 ./scripts/build_app.sh      # build the .app but don't launch it
 ```
 
-### Quitting the app
+### Menu-bar item
 
-Since there's no Dock icon, quit it from the terminal:
+PlayNotch adds a small **♪ icon to the menu bar** — its home for settings,
+since there's no Dock icon. From its menu you can:
 
-```bash
-pkill -f "PlayNotch.app/Contents/MacOS"
-```
+- toggle **Launch at Login**,
+- toggle **Theme from Artwork**,
+- jump to the **Automation** privacy settings,
+- **Quit** PlayNotch.
+
+(You can also quit from the terminal with `pkill -f "PlayNotch.app/Contents/MacOS"`.)
 
 ---
 
@@ -135,19 +141,32 @@ Supported browsers for YT Music: Chrome, Brave, Edge, Arc, Safari.
 | YouTube Music | JavaScript injected into the browser tab               |
 
 State is refreshed every second. The playback position advances smoothly
-between polls via local interpolation, so the progress bar never stutters. If
-multiple players are active, the one currently playing wins.
+between polls via local interpolation, so the progress bar never stutters.
+
+When several players are active at once, PlayNotch tracks playback transitions:
+the source you **most recently started playing** takes control, it keeps control
+while it plays, and pausing it hands off to whatever else is still playing.
 
 ---
 
 ## Features
 
-- Hover-to-expand notch with collapsed strip and expanded card.
-- Now-playing artwork, title, artist, and source.
+- Hover-to-expand notch with collapsed strip and an expanded card, with the
+  notch's top corners rounded like the real one.
+- Now-playing artwork, title, artist, and source icon.
 - Transport controls: previous / play-pause / next.
-- **Scrubbable progress bar** with elapsed / total time (drag to seek).
-- **Volume control**: scroll over the notch to adjust, or drag the volume
-  slider.
+- **Scrubbable progress bar** with elapsed / remaining time. Hover to preview a
+  seek position (highlighted) with a time bubble; drag to seek.
+- **Volume control**: scroll over the notch or drag the slider. Changes persist
+  (YouTube Music is driven through its own player API).
+- **Shuffle / repeat** toggles (Apple Music & Spotify natively; YouTube Music
+  via its player bar, language-independent).
+- **Like / favorite** the current track (Apple Music `loved`, YouTube Music
+  like; hidden for Spotify, whose AppleScript can't save to library).
+- **Artwork theming**: a vibrant accent colour is extracted from the cover and
+  applied to the card tint, progress and volume bars, and active toggles.
+  Toggle it from the menu-bar item.
+- **Menu-bar item** for settings (launch at login, theming, quit).
 - Click-through everywhere outside the visible notch shape (the desktop and
   windows underneath stay fully clickable).
 
@@ -159,19 +178,21 @@ multiple players are active, the one currently playing wins.
 Sources/PlayNotch/
   main.swift              agent app (.accessory, no Dock)
   AppDelegate.swift       startup + reacting to screen changes
+  StatusItemController    menu-bar item: settings, launch at login, quit
   Media/
     NowPlaying.swift      data model + MediaSource protocol
-    AppleScriptRunner     NSAppleScript helper
+    AppleScriptRunner     NSAppleScript helper (+ locale-tolerant number parse)
     AppleMusicSource      Music.app
     SpotifySource         Spotify.app
     YouTubeMusicSource    browser-tab control
-    MediaController       picks the active source
+    MediaController       picks the active source (last-played wins)
   Notch/
-    NotchViewModel        state, polling, artwork loading
+    NotchViewModel        state, polling, artwork loading, accent colour
     NotchView             SwiftUI UI: notch shape, card, controls
     NotchWindow           NSPanel above the menu bar, non-activating
     NotchController        screen geometry, mouse tracking, pass-through
     PassthroughHostingView  lets clicks pass through outside the notch
+    ColorExtraction       vibrant accent colour from artwork
 scripts/
   build_app.sh            builds and packages the .app
 ```
@@ -180,20 +201,22 @@ scripts/
 
 ## Launch at login (optional)
 
-For now it starts manually. To launch it automatically, add `build/PlayNotch.app`
-under **System Settings → General → Login Items**. (An app-managed login item
-is on the roadmap.)
+Toggle **Launch at Login** from the menu-bar **♪** menu (it uses
+`SMAppService`). Since the app is ad-hoc signed and run from `build/`, macOS may
+refuse to register it from there — move `PlayNotch.app` to `/Applications` (or
+sign it with your own Developer ID) for reliable login registration.
 
 ---
 
 ## Roadmap
 
 - [x] Progress bar + seek + volume control
-- [ ] Like / favorite and shuffle / repeat toggles
-- [ ] Artwork-based theming
+- [x] Like / favorite and shuffle / repeat toggles
+- [x] Artwork-based theming
+- [x] Menu-bar item with launch at login
 - [ ] Full-width artwork and "liquid" animations
 - [ ] Control Center–style panels (brightness, volume, toggles, shortcuts)
 - [ ] File dock / drag-and-drop into the notch
-- [ ] Preferences (launch at login, screen choice, sizing)
+- [ ] Preferences (screen choice, sizing)
 - [ ] Notarization for distribution outside this Mac
 ```
