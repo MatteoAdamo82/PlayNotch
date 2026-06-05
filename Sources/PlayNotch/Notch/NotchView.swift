@@ -190,6 +190,13 @@ struct NotchView: View {
                     }
                 }
                 Spacer()
+
+                // Quick toggles are handy even when nothing is playing.
+                if viewModel.showControlCenter {
+                    ControlCenterRow(system: system, accent: viewModel.accentColor)
+                        .padding(.horizontal, 28)
+                        .padding(.bottom, 14)
+                }
             }
             Spacer(minLength: 0)
         }
