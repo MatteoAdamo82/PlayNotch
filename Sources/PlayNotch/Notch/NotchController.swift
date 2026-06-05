@@ -194,9 +194,11 @@ final class NotchController {
     private func applyMetrics() {
         let metrics = NotchMetrics.current()
         viewModel.collapsedSize = CGSize(width: metrics.collapsedWidth, height: metrics.height)
-        // Shorter card when the Control Center row is hidden.
-        let baseHeight: CGFloat = viewModel.showControlCenter ? 250 : 196
-        viewModel.expandedSize = CGSize(width: baseExpandedWidth, height: baseHeight)
+        // The card reserves the notch-strip height at the top; add it to the
+        // content height so the bottom margin stays consistent across Macs
+        // (the menu-bar/notch height differs: ~37 with a notch, ~24 without).
+        let contentHeight: CGFloat = viewModel.showControlCenter ? 213 : 159
+        viewModel.expandedSize = CGSize(width: baseExpandedWidth, height: contentHeight + metrics.height)
         viewModel.sizeScale = CGFloat(SizePreference.scale)
     }
 
