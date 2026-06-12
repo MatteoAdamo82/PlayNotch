@@ -167,13 +167,37 @@ final class NotchViewModel: ObservableObject {
         setVolume(toFraction: volume + delta)
     }
 
-    /// Set the volume to an absolute fraction (0...1) and push it to the app.
+    /// Set the volume to an absolute fraction (0...1).
+    ///
+    /// The UI value updates instantly, but pushing the value to the app runs an
+    /// AppleScript round-trip — doing that synchronously on every drag tick
+    /// stalled the main thread and made the slider stutter. Instead we coalesce:
+    /// remember the latest target and flush it at most every ~60ms.
     func setVolume(toFraction fraction: Double) {
         let clamped = min(max(fraction, 0), 1)
         guard abs(clamped - volume) > 0.0001 else { return }
         volume = clamped
-        media.setVolume(clamped)
         flashVolume()
+        scheduleVolumePush(clamped)
+    }
+
+    private var pendingVolume: Double?
+    private var volumePushScheduled = false
+
+    /// Coalesce volume writes: keep only the most recent target and push it on a
+    /// throttle so a fast drag fires a few AppleScript calls, not dozens.
+    private func scheduleVolumePush(_ value: Double) {
+        pendingVolume = value
+        guard !volumePushScheduled else { return }
+        volumePushScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) { [weak self] in
+            guard let self else { return }
+            self.volumePushScheduled = false
+            if let v = self.pendingVolume {
+                self.pendingVolume = nil
+                self.media.setVolume(v)
+            }
+        }
     }
 
     /// Mark the volume control as "being adjusted" for a short window so the
