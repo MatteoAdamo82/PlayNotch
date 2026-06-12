@@ -233,7 +233,7 @@ private struct ProgressBar: View {
     @State private var hoverX: CGFloat?
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 0.2)) { _ in
+        TimelineView(.periodic(from: .now, by: 0.05)) { _ in
             let duration = viewModel.duration ?? 0
             let livePosition = viewModel.currentPosition()
             let liveFraction = duration > 0 ? min(max(livePosition / duration, 0), 1) : 0
@@ -244,20 +244,22 @@ private struct ProgressBar: View {
                     let target: Double? = scrubFraction ?? hoverX.map { min(max($0 / width, 0), 1) }
                     let active = target != nil
                     let knob = target ?? liveFraction
-                    let lo = min(liveFraction, knob)
-                    let hi = max(liveFraction, knob)
 
                     // Only the 4pt bar lives in the ZStack — its height never
                     // changes. The taller time bubble is an overlay, which can't
                     // resize the bar, so nothing grows or shifts on hover.
+                    //
+                    // On hover/scrub we fill the WHOLE bar from 0 to the knob in
+                    // white, stacked over the accent fill. A single left-anchored
+                    // capsule means no rounded inner edge and no gap with the
+                    // played portion underneath.
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.18)).frame(height: 4)
                         Capsule().fill(viewModel.accentColor)
-                            .frame(width: lo * width, height: 4)
+                            .frame(width: liveFraction * width, height: 4)
                         if active {
                             Capsule().fill(.white.opacity(0.9))
-                                .frame(width: (hi - lo) * width, height: 4)
-                                .offset(x: lo * width)
+                                .frame(width: knob * width, height: 4)
                         }
                     }
                     .frame(maxHeight: .infinity, alignment: .center)
@@ -343,18 +345,18 @@ private struct VolumeBar: View {
 
             let fraction = min(max(viewModel.volume, 0), 1)
             let hoverFraction = hoverX.map { min(max($0 / trackWidth, 0), 1) }
-            let lo = min(fraction, hoverFraction ?? fraction)
-            let hi = max(fraction, hoverFraction ?? fraction)
 
+            // White preview fills the whole track from 0 to the hover point
+            // (single left-anchored capsule) — no rounded inner edge, no gap
+            // with the accent fill underneath.
             ZStack(alignment: .leading) {
                 Capsule().fill(.white.opacity(0.18)).frame(height: 4)
                 Capsule()
                     .fill(viewModel.accentColor.opacity(viewModel.isAdjustingVolume ? 1 : 0.85))
-                    .frame(width: lo * trackWidth, height: 4)
-                if hoverFraction != nil {
+                    .frame(width: fraction * trackWidth, height: 4)
+                if let hoverFraction {
                     Capsule().fill(.white.opacity(0.9))
-                        .frame(width: (hi - lo) * trackWidth, height: 4)
-                        .offset(x: lo * trackWidth)
+                        .frame(width: hoverFraction * trackWidth, height: 4)
                 }
             }
             .frame(width: trackWidth, height: 4)
@@ -385,7 +387,6 @@ private struct VolumeBar: View {
                     }
             )
         }
-        .animation(.easeOut(duration: 0.15), value: viewModel.volume)
     }
 }
 
