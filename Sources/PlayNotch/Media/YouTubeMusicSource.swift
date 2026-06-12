@@ -268,9 +268,10 @@ final class YouTubeMusicSource: MediaSource {
         "(function(){var e=document.querySelector('ytmusic-player-bar .repeat');"
         + "if(e){e.click();}return 'ok';})()"
 
-    // Click the like (thumbs-up) button — the last button in the like renderer
-    // (the first is dislike), language-independent.
+    // Click the thumbs-up via its stable `#button-shape-like` id — the DOM
+    // order of like/dislike is NOT stable (it flipped once, and clicking
+    // dislike skips the track), but the id is language-independent.
     private static let likeJS =
-        "(function(){var lr=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer');"
-        + "if(lr){var b=lr.querySelectorAll('button');if(b.length){b[b.length-1].click();}}return 'ok';})()"
+        "(function(){var b=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer #button-shape-like button');"
+        + "if(b){b.click();}return 'ok';})()"
 }
