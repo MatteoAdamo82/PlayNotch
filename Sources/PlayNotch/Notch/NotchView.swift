@@ -9,7 +9,6 @@ import SwiftUI
 /// the content can never spill past the notch silhouette.
 struct NotchView: View {
     @ObservedObject var viewModel: NotchViewModel
-    @StateObject private var system = SystemControls()
 
     private var expanded: Bool { viewModel.isExpanded }
     private var radius: CGFloat { expanded ? 22 : 10 }
@@ -94,10 +93,33 @@ struct NotchView: View {
 
     // MARK: - Expanded
 
+    /// The card body, reused by the desktop widget. `topInset` reserves space
+    /// for the physical notch strip (0 in the standalone widget).
     private var expandedContent: some View {
+        PlayerCard(viewModel: viewModel, topInset: viewModel.collapsedSize.height)
+    }
+}
+
+/// The now-playing card contents (artwork, transport, progress, volume, quick
+/// toggles) — shared by the notch's expanded state and the desktop widget.
+struct PlayerCard: View {
+    @ObservedObject var viewModel: NotchViewModel
+    /// Space reserved at the top (the notch strip height; 0 for the widget).
+    var topInset: CGFloat = 0
+    /// When true, content is centered vertically in the available height
+    /// (the desktop widget uses a fixed, taller frame). The notch keeps its
+    /// top-anchored layout so it stays glued to the screen edge.
+    var verticallyCentered: Bool = false
+    @StateObject private var system = SystemControls()
+
+    var body: some View {
         VStack(spacing: 0) {
             // Leave room for the physical notch strip at the very top.
-            Spacer().frame(height: viewModel.collapsedSize.height)
+            Spacer().frame(height: topInset)
+
+            // Split the slack top and bottom so content sits centered instead
+            // of crammed under the notch strip.
+            if verticallyCentered { Spacer(minLength: 0) }
 
             if let np = viewModel.nowPlaying {
                 HStack(alignment: .top, spacing: 14) {
@@ -200,7 +222,7 @@ struct NotchView: View {
             }
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: verticallyCentered ? .center : .top)
     }
 
     @ViewBuilder

@@ -11,7 +11,7 @@ import Combine
 /// that made the collapsed content jitter during the open/close animation.
 @MainActor
 final class NotchController {
-    private let viewModel = NotchViewModel()
+    private let viewModel: NotchViewModel
     private var window: NotchWindow?
     private weak var hostingView: PassthroughHostingView<NotchView>?
     private var cancellables = Set<AnyCancellable>()
@@ -25,6 +25,15 @@ final class NotchController {
     private let canvasWidth: CGFloat = 540
     private let canvasHeight: CGFloat = 330
     private let baseExpandedWidth: CGFloat = 440
+
+    /// The shared view model is created by the app and injected, so the notch
+    /// and the desktop widget observe the same media state (one poll, not two).
+    init(viewModel: NotchViewModel) {
+        self.viewModel = viewModel
+    }
+
+    /// The view model, exposed so a desktop widget can share the same state.
+    var sharedViewModel: NotchViewModel { viewModel }
 
     func start() {
         buildWindow()
