@@ -59,7 +59,7 @@ final class YouTubeMusicSource: MediaSource {
                 artworkData: nil,
                 volume: Double(parts[7]),
                 isShuffle: parts[8].isEmpty ? nil : (parts[8] == "true"),
-                repeatMode: Self.parseRepeatMode(parts[9]),
+                repeatMode: parseRepeatMode(parts[9]),
                 isFavorite: parts[10].isEmpty ? nil : (parts[10] == "LIKE")
             )
         }
@@ -135,15 +135,51 @@ final class YouTubeMusicSource: MediaSource {
         }
     }
 
-    /// YTM exposes repeat as a non-localized `repeat-mode` attribute on
-    /// `<ytmusic-player-bar>`: NONE / ALL / ONE.
-    private static func parseRepeatMode(_ s: String) -> RepeatMode? {
+    /// Repeat comes in two shapes:
+    ///  • old bar: a non-localized `repeat-mode` attribute — NONE / ALL / ONE;
+    ///  • new player: "NONE", or "P:<label>" when on. ALL and ONE differ only
+    ///    by the localized label, so we learn which label is which from the
+    ///    button's fixed cycle (off → all → one), with a word heuristic until
+    ///    we've seen the cycle.
+    private var repeatAllLabel: String?
+    private var repeatOneLabel: String?
+    private var lastRepeat: (mode: RepeatMode, label: String)?
+
+    private func parseRepeatMode(_ s: String) -> RepeatMode? {
         switch s {
         case "ALL", "ALL_QUEUE": return .all
         case "ONE": return .one
-        case "NONE": return .off
-        default: return nil
+        case "NONE":
+            lastRepeat = (.off, "")
+            return .off
+        default: break
         }
+        guard s.hasPrefix("P:") else { return nil }
+        let label = String(s.dropFirst(2))
+
+        let mode: RepeatMode
+        if label == repeatAllLabel {
+            mode = .all
+        } else if label == repeatOneLabel {
+            mode = .one
+        } else if let last = lastRepeat, last.mode == .off {
+            repeatAllLabel = label
+            mode = .all
+        } else if let last = lastRepeat, last.mode == .all, last.label != label {
+            repeatOneLabel = label
+            mode = .one
+        } else {
+            mode = Self.labelLooksLikeRepeatOne(label) ? .one : .all
+        }
+        lastRepeat = (mode, label)
+        return mode
+    }
+
+    /// "Repeat one" / "Ripeti uno" / "Einen wiederholen" / "Répéter un titre"…
+    private static func labelLooksLikeRepeatOne(_ label: String) -> Bool {
+        let words = label.lowercased().split { !$0.isLetter && !$0.isNumber }
+        let one: Set<Substring> = ["one", "uno", "una", "un", "une", "eins", "einen", "um", "uma", "een", "1"]
+        return words.contains { one.contains($0) }
     }
 
     func setVolume(_ value: Double) {
@@ -214,64 +250,93 @@ final class YouTubeMusicSource: MediaSource {
     // single quotes throughout and String.fromCharCode(9) for the tab field
     // separator. Keep each one a single line.
 
+    // YTM shipped a redesigned player (2026-10): `<ytmusic-player-bar>` is
+    // gone, replaced by `<ytmusic-miniplayer>` with `ytmusic-track-info` and
+    // `ytmusic-wiz-player-controls`. Its buttons sit in wrappers with stable,
+    // language-independent classes (`.ytmusicPlayerControlsNextButton`, …).
+    // Every lookup tries the new layout first and falls back to the old one,
+    // since YTM rolls redesigns out gradually.
+    //
+    // Title/artist/album/artwork come from `navigator.mediaSession.metadata`
+    // first: it's a standard browser API, so it survives DOM redesigns.
+
     private static let readJS =
         "(function(){var v=document.querySelector('video');" +
-        "var t=document.querySelector('.title.ytmusic-player-bar');" +
-        "if(!t||!t.textContent){return '';}" +
-        "var title=t.textContent.trim();" +
-        "var b=document.querySelector('.byline.ytmusic-player-bar');" +
-        "var by=(b?(b.getAttribute('title')||b.textContent):'')||'';" +
+        "var title='',artist='',album='',art='';" +
+        "var md=navigator.mediaSession&&navigator.mediaSession.metadata;" +
+        "if(md&&md.title){title=md.title;artist=md.artist||'';album=md.album||'';" +
+        "if(md.artwork&&md.artwork.length){art=md.artwork[md.artwork.length-1].src||'';}}" +
+        "if(!title){var by='';var ti=document.querySelector('ytmusic-track-info');" +
+        "if(ti){var te=ti.querySelector('.ytmusicTrackInfoTitle');title=te?(te.getAttribute('title')||te.textContent||''):'';" +
+        "var be=ti.querySelector('.ytmusicTrackInfoBylineItem');by=be?(be.getAttribute('title')||be.textContent||''):'';" +
+        "var ie=ti.querySelector('img.ytmusicTrackInfoThumbnail');if(ie){art=ie.src;}}" +
+        "else{var t=document.querySelector('.title.ytmusic-player-bar');title=t?(t.textContent||''):'';" +
+        "var b=document.querySelector('.byline.ytmusic-player-bar');by=b?(b.getAttribute('title')||b.textContent||''):'';" +
+        "var im=document.querySelector('#song-image img')||document.querySelector('img.ytmusic-player-bar');if(im){art=im.src;}}" +
         "var parts=by.split('•').map(function(s){return s.trim();});" +
-        "var artist=parts[0]||'';" +
-        "var album=(parts.length>2?parts[1]:'')||'';" +
-        "var art='';try{var im=document.querySelector('#song-image img')||document.querySelector('img.ytmusic-player-bar');if(im){art=im.src;}}catch(e){}" +
+        "artist=parts[0]||'';album=(parts.length>1?parts[1]:'')||'';}" +
+        "title=title.trim();if(!title){return '';}" +
         "var st=(v&&!v.paused)?'playing':'paused';" +
         "var dur=(v&&isFinite(v.duration)&&v.duration>0)?v.duration:0;" +
         "var pos=(v&&isFinite(v.currentTime))?v.currentTime:0;" +
-        "if(!dur){var s=document.querySelector('#progress-bar');if(s){var mx=parseFloat(s.getAttribute('aria-valuemax'));if(isFinite(mx)&&mx>0){dur=mx;var nw=parseFloat(s.getAttribute('aria-valuenow'));if(isFinite(nw)){pos=nw;}}}}" +
+        "if(!dur){var s=document.querySelector('input.ytMusicMiniPlayerProgressBar')||document.querySelector('#progress-bar');if(s){var mx=parseFloat(s.getAttribute('max')||s.getAttribute('aria-valuemax'));if(isFinite(mx)&&mx>0){dur=mx;var nw=parseFloat(s.value||s.getAttribute('aria-valuenow'));if(isFinite(nw)){pos=nw;}}}}" +
         // Read the volume from YTM's own player API (getVolume is 0-100), not
         // the raw <video>.volume which YTM keeps overwriting from its own state.
         "var mp=document.querySelector('#movie_player');var vol=1;" +
         "if(mp&&typeof mp.getVolume==='function'){vol=(mp.isMuted&&mp.isMuted())?0:(mp.getVolume()/100);}" +
         "else if(v&&isFinite(v.volume)){vol=v.volume;}" +
-        "var bar=document.querySelector('ytmusic-player-bar');" +
-        "var rm=bar?(bar.getAttribute('repeat-mode')||''):'';" +
-        // Shuffle has no state attribute, but the button is colored white when
-        // active and grey when not — read its computed color's red channel.
-        "var sb=document.querySelector('ytmusic-player-bar .shuffle');" +
-        "var shuf='';if(sb){var sc=getComputedStyle(sb).color;var sr=parseInt((sc.split('(')[1]||'0').split(',')[0]);if(isFinite(sr)){shuf=(sr>190)?'true':'false';}}" +
-        "var lr=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer');" +
-        "var like=lr?(lr.getAttribute('like-status')||''):'';" +
+        // Repeat: the new button only exposes aria-pressed (on/off) plus a
+        // localized label that tells ALL from ONE, so send 'P:<label>' and let
+        // Swift resolve it. The old bar has a `repeat-mode` attribute.
+        "var rm='';var rb=document.querySelector('.ytmusicPlayerControlsRepeatButton button');" +
+        "if(rb){rm=(rb.getAttribute('aria-pressed')==='true')?('P:'+(rb.getAttribute('aria-label')||'')):'NONE';}" +
+        "else{var bar=document.querySelector('ytmusic-player-bar');rm=bar?(bar.getAttribute('repeat-mode')||''):'';}" +
+        // Shuffle: new button has aria-pressed. The old one has no state
+        // attribute, but is colored white when active and grey when not.
+        "var shuf='';var nsb=document.querySelector('.ytmusicPlayerControlsShuffleButton button');" +
+        "if(nsb){shuf=(nsb.getAttribute('aria-pressed')==='true')?'true':'false';}" +
+        "else{var sb=document.querySelector('ytmusic-player-bar .shuffle');" +
+        "if(sb){var sc=getComputedStyle(sb).color;var sr=parseInt((sc.split('(')[1]||'0').split(',')[0]);if(isFinite(sr)){shuf=(sr>190)?'true':'false';}}}" +
+        "var like='';var lb=document.querySelector('ytmusic-miniplayer like-button-view-model button');" +
+        "if(lb){like=(lb.getAttribute('aria-pressed')==='true')?'LIKE':'INDIFFERENT';}" +
+        "else{var lr=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer');like=lr?(lr.getAttribute('like-status')||''):'';}" +
         "var TAB=String.fromCharCode(9);" +
         "return st+TAB+title+TAB+artist+TAB+album+TAB+art+TAB+dur+TAB+pos+TAB+vol+TAB+shuf+TAB+rm+TAB+like;})()"
 
-    private static let playPauseJS =
-        "(function(){var p=document.querySelector('#play-pause-button');" +
-        "if(p){p.click();return 'ok';}" +
-        "var v=document.querySelector('video');if(v){v.paused?v.play():v.pause();}return 'ok';})()"
+    /// Click the first element matching any of `selectors` (new layout first,
+    /// old as fallback); if none exists, run `fallback` JS instead.
+    private static func clickJS(_ selectors: [String], fallback: String = "") -> String {
+        let list = selectors.map { "'\($0)'" }.joined(separator: ",")
+        return "(function(){var s=[\(list)];for(var i=0;i<s.length;i++){"
+            + "var e=document.querySelector(s[i]);if(e){e.click();return 'ok';}}"
+            + "\(fallback)return 'ok';})()"
+    }
 
-    private static let nextJS =
-        "(function(){var n=document.querySelector('.next-button');if(n){n.click();}return 'ok';})()"
+    // On the old bar we click the `yt-icon-button` wrapper itself (clicking the
+    // inner <button> doesn't fire YTM's Polymer tap handler); on the new one
+    // the inner <button> is the real control.
+    private static let playPauseJS = clickJS(
+        [".ytmusicPlayerControlsPlayPauseButton button", "#play-pause-button"],
+        fallback: "var v=document.querySelector('video');if(v){v.paused?v.play():v.pause();}")
 
-    private static let prevJS =
-        "(function(){var p=document.querySelector('.previous-button');if(p){p.click();}return 'ok';})()"
+    private static let nextJS = clickJS(
+        [".ytmusicPlayerControlsNextButton button", ".next-button"],
+        fallback: "var mp=document.querySelector('#movie_player');if(mp&&mp.nextVideo){mp.nextVideo();}")
 
-    // The player-bar wrapper buttons carry stable, language-independent class
-    // names (`.shuffle` / `.repeat`) even when the UI is localized. We click the
-    // `yt-icon-button` wrapper itself (clicking the inner <button> doesn't fire
-    // YTM's Polymer tap handler) — the same way the transport buttons work.
-    private static let shuffleJS =
-        "(function(){var e=document.querySelector('ytmusic-player-bar .shuffle');"
-        + "if(e){e.click();}return 'ok';})()"
+    private static let prevJS = clickJS(
+        [".ytmusicPlayerControlsPreviousButton button", ".previous-button"],
+        fallback: "var mp=document.querySelector('#movie_player');if(mp&&mp.previousVideo){mp.previousVideo();}")
 
-    private static let repeatJS =
-        "(function(){var e=document.querySelector('ytmusic-player-bar .repeat');"
-        + "if(e){e.click();}return 'ok';})()"
+    private static let shuffleJS = clickJS(
+        [".ytmusicPlayerControlsShuffleButton button", "ytmusic-player-bar .shuffle"])
 
-    // Click the thumbs-up via its stable `#button-shape-like` id — the DOM
-    // order of like/dislike is NOT stable (it flipped once, and clicking
-    // dislike skips the track), but the id is language-independent.
-    private static let likeJS =
-        "(function(){var b=document.querySelector('ytmusic-player-bar ytmusic-like-button-renderer #button-shape-like button');"
-        + "if(b){b.click();}return 'ok';})()"
+    private static let repeatJS = clickJS(
+        [".ytmusicPlayerControlsRepeatButton button", "ytmusic-player-bar .repeat"])
+
+    // Target the thumbs-up by its own element/id — the DOM order of
+    // like/dislike is NOT stable (it flipped once, and clicking dislike skips
+    // the track).
+    private static let likeJS = clickJS(
+        ["ytmusic-miniplayer like-button-view-model button",
+         "ytmusic-player-bar ytmusic-like-button-renderer #button-shape-like button"])
 }
