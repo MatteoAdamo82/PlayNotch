@@ -44,9 +44,19 @@ final class AppleMusicSource: MediaSource {
                 set theArtist to artist of t
                 set theAlbum to album of t
                 set theDur to ((duration of t) as string)
-                set theLoved to (loved of t as string)
             on error
                 return pstate & tab & "" & tab & "" & tab & "" & tab & "0" & tab & pos & tab & theVol & tab & theShuf & tab & theRep & tab & "false"
+            end try
+            -- Favorite state: `loved` is broken on recent Music versions
+            -- (raises a descriptor-type error), so prefer `favorited` and keep
+            -- it in its own try so it can never blank the whole track read.
+            set theLoved to "false"
+            try
+                set theLoved to (favorited of t as string)
+            on error
+                try
+                    set theLoved to (loved of t as string)
+                end try
             end try
             return pstate & tab & theTitle & tab & theArtist & tab & theAlbum & tab & theDur & tab & pos & tab & theVol & tab & theShuf & tab & theRep & tab & theLoved
         end tell
@@ -141,7 +151,17 @@ final class AppleMusicSource: MediaSource {
     }
 
     func toggleFavorite() {
-        AppleScriptRunner.run(#"tell application "Music" to set loved of current track to not (loved of current track)"#)
+        // Prefer `favorited` (current API); fall back to `loved` on older
+        // Music versions where `favorited` doesn't exist.
+        AppleScriptRunner.run("""
+        tell application "Music"
+            try
+                set favorited of current track to not (favorited of current track)
+            on error
+                set loved of current track to not (loved of current track)
+            end try
+        end tell
+        """)
     }
 
     func activate() {
