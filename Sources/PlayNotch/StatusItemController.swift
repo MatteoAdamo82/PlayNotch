@@ -8,9 +8,11 @@ import ServiceManagement
 final class StatusItemController: NSObject, NSMenuDelegate {
     private let statusItem: NSStatusItem
     private weak var notch: NotchController?
+    private weak var widget: DesktopWidgetController?
 
-    init(notch: NotchController) {
+    init(notch: NotchController, widget: DesktopWidgetController) {
         self.notch = notch
+        self.widget = widget
         self.statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         super.init()
 
@@ -52,6 +54,11 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         cc.target = self
         cc.state = (notch?.isControlCenterShown ?? true) ? .on : .off
         menu.addItem(cc)
+
+        let widgetItem = NSMenuItem(title: "Desktop Widget", action: #selector(toggleWidget), keyEquivalent: "")
+        widgetItem.target = self
+        widgetItem.state = (widget?.isVisible ?? false) ? .on : .off
+        menu.addItem(widgetItem)
 
         let sizeItem = NSMenuItem(title: "Notch Size", action: nil, keyEquivalent: "")
         let sizeMenu = NSMenu()
@@ -131,6 +138,10 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     @objc private func toggleControlCenter() {
         guard let notch else { return }
         notch.setControlCenterShown(!notch.isControlCenterShown)
+    }
+
+    @objc private func toggleWidget() {
+        widget?.toggle()
     }
 
     @objc private func pickSize(_ sender: NSMenuItem) {
